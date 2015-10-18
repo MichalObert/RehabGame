@@ -15,7 +15,6 @@ public class TerrainMenu {
             terrains[i].gameObject.SetActive(false);
         }
         terrains[(activeTerrain + 1) % terrains.Length].gameObject.SetActive(true);
-        Debug.Log(terrains[(activeTerrain + 1) % terrains.Length].gameObject.name + " activated");
     }
 
     [MenuItem("RehabGame/SaveTerrain")]

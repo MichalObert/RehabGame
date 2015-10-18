@@ -5,6 +5,7 @@ using System;
 using UnityEngine.UI;
 
 public delegate void LeapEventDelegate();
+
 public class ChangingHeights: MonoBehaviour {
     public enum Modes { Editor, Interactive, Playing };
     public Terrain terrain;
@@ -18,6 +19,7 @@ public class ChangingHeights: MonoBehaviour {
     public Text modeText;
     public Text treesLeft;
     public Text groundLeft;
+    private float actualGroundCost;
     public Vector3 positionOfThumb = new Vector3(0,0,0);
     int goUp = 1;
     int hmWidth; // heightmap width 
@@ -42,6 +44,7 @@ public class ChangingHeights: MonoBehaviour {
     private Vector3 positionOfTap;
     private TreeInstance tree;
     private int terrainLayerMask;
+    private int middleOfCircle;
 
     private Modes mode;
     public Modes Mode {
@@ -66,7 +69,7 @@ public class ChangingHeights: MonoBehaviour {
     private int groundRemaining;
     public int GroundRemaining {
         get {
-            return GroundRemaining;
+            return groundRemaining;
         }
         set {
             groundRemaining = value;
@@ -98,7 +101,8 @@ public class ChangingHeights: MonoBehaviour {
         terrainIncrementSlider.onValueChanged.AddListener(ChangeTerrainIncrement);
         Mode = Modes.Editor;
         TreesRemaining = 5;
-        GroundRemaining = 1000;
+        GroundRemaining = 10000;
+        actualGroundCost = -1; //as in not yet counted
         terrainLayerMask = LayerMask.NameToLayer("Terrain");
         terrainLayerMask = ~terrainLayerMask;
     }
@@ -179,10 +183,10 @@ public class ChangingHeights: MonoBehaviour {
             positionOfThumb = graphicThumb.GetTipPosition();
             if(mode == Modes.Editor) {
                 if(thumb.TipPosition.y > 160) {
-                    heightChange = Time.deltaTime / 150;
+                    heightChange = 0.001f;
                 } else {
                     if(thumb.TipPosition.y <= 160) {
-                        heightChange = -Time.deltaTime / 150;
+                        heightChange = -0.001f;
                     } else {
                         heightChange = 0;
                     }
@@ -229,80 +233,34 @@ public class ChangingHeights: MonoBehaviour {
         posXInTerrain = (int)(coord.x * hmWidth);
         posYInTerrain = (int)(coord.y * hmHeight);
         // we set an offset so that all the raising terrain is under this point, rather than at edge
-        int offset = size / 2;
         if(mode == Modes.Editor && posXInTerrain + size < hmWidth && posYInTerrain + size < hmHeight && posXInTerrain > 0 && posYInTerrain > 0 &&
              (pinchActive || mouseIsDown)) {
+        
                  if(!pinchActive && mouseIsDown) {
-                     heightChange = Time.deltaTime / 150;
+                     heightChange = 0.001f;
                  }
-
-            // get the heights of the terrain at given position
-            float[,] heights = terrain.terrainData.GetHeights(posXInTerrain - offset, posYInTerrain - offset, size, size);
-            heightChange *= (speed * 0.55f);
-            heightChange *= goUp;
-            // we set each sample of the terrain in the size to the desired height and in the shape of a circle
-            int middle = size / 2;
-            int xCor;
-            int yCor;
-            for(int i = 0; i < size; i++) {
-                for(int j = 0; j < size; j++) {
-                    //circle equation
-                    if((i - middle) * (i - middle) + (j - middle) * (j - middle) < middle * middle) {
-              //      if(exp ^ -((1 / 2) * (i - middle) * (i - middle) + 1 / 2 * (j - middle) * (j - middle)) < middle * middle) { 
-                    //  heights[i, j] += heightChange;
-                        xCor = i - middle;
-                        yCor = j - middle;
-                        if(xCor < 0) xCor = -xCor;
-                        if(yCor < 0) yCor = -yCor;
-                        //not working, making cross
-                        //heights[i, j] += heightChange * (((middle - xCor) / middle) + ((middle - yCor) / middle)) / 2;
-                        //try this. If not, try to not add xcor and ycor together...
-                        float newHeightChange = heightChange * ((middle - xCor) + (middle - yCor)) / 2;
-                        if(((middle - xCor) + (middle - yCor)) / 2 >= 15){
-                            //slow down raising closer to the middle of circle;
-                            newHeightChange *= 0.6f;
-                        }
-                        heights[i,j] += newHeightChange;
-                        //  heights[i, j] += ((middle - i)) > 0 ? (middle - i) / 20 : 0;
-                        //heights[i, j] += ((middle - j) / 20) > 0? (middle-j)/20 : 0;
-                    }
-                }
-            }
-            #region log terrain
-            /*string message = "";
-               if(message != "s") {
-                for(int i = 0; i < heights.GetLength(0); i++) {
-                    for(int j = 0; j < heights.GetLength(1); j++) {
-                        message += (heights[i, j]) + ";";//.ToString("F");
-                    }
-                    message += ", height";
-                }
-               // Debug.Log(message);
-                message = "s";
-            }
-            */
-            #endregion
-            // set the new height
-            terrain.terrainData.SetHeights(posXInTerrain - offset, posYInTerrain - offset, heights);
-            terrainColorChanger.recolorSquare(posXInTerrain - offset, posYInTerrain - offset, size, size);
-           // Smooth(posXInTerrain - offset, posYInTerrain - offset, size, size);
+            RaiseGround();
         }
-        //change everytime, but only on the size*size square
-       /* if(counter > 50) {
-            terrainColorChanger.recolorSquare(0, 0, terrain.terrainData.alphamapWidth, terrain.terrainData.alphamapHeight);
-            counter = 0;
+        
+            //change everytime, but only on the size*size square
+            /* if(counter > 50) {
+                 terrainColorChanger.recolorSquare(0, 0, terrain.terrainData.alphamapWidth, terrain.terrainData.alphamapHeight);
+                 counter = 0;
+             }
+             counter++;*/
         }
-        counter++;*/
-    }
     void Update() {
         if(Input.GetKeyDown(KeyCode.LeftShift)) {
             speed = 10;
+            GroundAmmountRequired();
         }
         if(Input.GetKeyUp(KeyCode.LeftShift)) {
             speed = 1;
+            GroundAmmountRequired();
         }
         if(Input.GetKeyDown(KeyCode.LeftControl)) {
             goUp *= -1;
+            GroundAmmountRequired();
         }
         if(Input.GetKeyDown("1")) {
             Mode = Modes.Editor;
@@ -326,9 +284,12 @@ public class ChangingHeights: MonoBehaviour {
         if(Input.GetKey("6")) {
             terrainIncrementSlider.value--;
         }
+        if(Input.GetKeyDown("space")) {
+            GroundAmmountRequired();
+        }
         //debuging purposes
         if(!controller.IsConnected) {
-            heightChange = Time.deltaTime / 150;
+            heightChange = 0.001f;
             parseFrame();
         }
         currentFrame = controller.Frame();
@@ -374,10 +335,12 @@ public class ChangingHeights: MonoBehaviour {
 
     public void resizeTerrainSelection(float size) {
         this.size = (int) size;
+        GroundAmmountRequired();
     }
 
     public void ChangeTerrainIncrement(float increment) {
         speed = (int) increment;
+        GroundAmmountRequired();
     }
     public HandModel getRightGraphicHand() {
         if(currentFrame == null) {
@@ -466,6 +429,111 @@ public class ChangingHeights: MonoBehaviour {
 
     public Terrain[] GetTerrains() {
         return GameObject.FindObjectsOfType<Terrain>();
+    }
+
+    private void GroundAmmountRequired() {
+        int xCor;
+        int yCor;
+        float totalHeightChange = 0;
+        float low = 1;
+        float high = 0;
+        middleOfCircle = (middleOfCircle == 0) ? size/2 : middleOfCircle;
+        for(int i = 0; i < size; i++) {
+            for(int j = 0; j < size; j++) {
+                //always a bit different. Sometimes about 1.6 bigger
+                //circle equation
+                if((i - middleOfCircle) * (i - middleOfCircle) + (j - middleOfCircle) * (j - middleOfCircle) < middleOfCircle * middleOfCircle) {
+                    xCor = i - middleOfCircle;
+                    yCor = j - middleOfCircle;
+                    if(xCor < 0)
+                        xCor = -xCor;
+                    if(yCor < 0)
+                        yCor = -yCor;
+                    float newHeightChange = heightChange * ((middleOfCircle - xCor) + (middleOfCircle - yCor)) / 2;
+                    if(((middleOfCircle - xCor) + (middleOfCircle - yCor)) / 2 >= 15) {
+                        //slow down raising closer to the middleOfCircle of circle;
+                        newHeightChange *= 0.6f;
+                    }
+                    totalHeightChange += newHeightChange * 1000;
+                }
+            }
+        }
+        if(goUp < 0) {
+            if(totalHeightChange > 0) {
+                totalHeightChange *= -1;
+            }
+        } else {
+            if(totalHeightChange < 0) {
+                totalHeightChange *= -1;
+            }
+        }
+        totalHeightChange *= speed;
+        actualGroundCost = totalHeightChange;
+    }
+
+    private void RaiseGround() {
+        if(actualGroundCost == -1) {
+            GroundAmmountRequired();
+        }
+        if(actualGroundCost > groundRemaining) {
+            Debug.Log("Not enough ground left. Needs: " + actualGroundCost + ", has: " + groundRemaining);
+            return;
+        }
+        int offset = size / 2;
+        // get the heights of the terrain at given position
+        float[,] heights = terrain.terrainData.GetHeights(posXInTerrain - offset, posYInTerrain - offset, size, size);
+        heightChange *= (speed * 0.55f);
+        heightChange *= goUp;
+        // we set each sample of the terrain in the size to the desired height and in the shape of a circle
+        middleOfCircle = size / 2;
+        int xCor;
+        int yCor;
+        for(int i = 0; i < size; i++) {
+            for(int j = 0; j < size; j++) {
+                //circle equation
+                if((i - middleOfCircle) * (i - middleOfCircle) + (j - middleOfCircle) * (j - middleOfCircle) < middleOfCircle * middleOfCircle) {
+                    //      if(exp ^ -((1 / 2) * (i - middleOfCircle) * (i - middleOfCircle) + 1 / 2 * (j - middleOfCircle) * (j - middleOfCircle)) < middleOfCircle * middleOfCircle) { 
+                    //  heights[i, j] += heightChange;
+                    xCor = i - middleOfCircle;
+                    yCor = j - middleOfCircle;
+                    if(xCor < 0)
+                        xCor = -xCor;
+                    if(yCor < 0)
+                        yCor = -yCor;
+                    //not working, making cross
+                    //heights[i, j] += heightChange * (((middleOfCircle - xCor) / middleOfCircle) + ((middleOfCircle - yCor) / middleOfCircle)) / 2;
+                    //try this. If not, try to not add xcor and ycor together...
+                    float newHeightChange = heightChange * ((middleOfCircle - xCor) + (middleOfCircle - yCor)) / 2;
+                    if(((middleOfCircle - xCor) + (middleOfCircle - yCor)) / 2 >= 15) {
+                        //slow down raising closer to the middleOfCircle of circle;
+                        newHeightChange *= 0.6f;
+                    }
+                    heights[i, j] += newHeightChange;
+                    //  heights[i, j] += ((middleOfCircle - i)) > 0 ? (middleOfCircle - i) / 20 : 0;
+                    //heights[i, j] += ((middleOfCircle - j) / 20) > 0? (middleOfCircle-j)/20 : 0;
+                }
+            }
+        }
+        #region log terrain
+        /*string message = "";
+           if(message != "s") {
+            for(int i = 0; i < heights.GetLength(0); i++) {
+                for(int j = 0; j < heights.GetLength(1); j++) {
+                    message += (heights[i, j]) + ";";//.ToString("F");
+                }
+                message += ", height";
+            }
+           // Debug.Log(message);
+            message = "s";
+        }
+        */
+        #endregion
+        // set the new height
+        terrain.terrainData.SetHeights(posXInTerrain - offset, posYInTerrain - offset, heights);
+        terrainColorChanger.recolorSquare(posXInTerrain - offset, posYInTerrain - offset, size, size);
+        GroundRemaining -= (int)actualGroundCost;
+        // Smooth(posXInTerrain - offset, posYInTerrain - offset, size, size);
+        
     }
 }
 
