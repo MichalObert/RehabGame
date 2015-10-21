@@ -161,7 +161,12 @@ public class ChangingHeights: MonoBehaviour {
                 Vector3 normalizedPositionOfTap = new Vector3(positionOfTap.x / terrain.terrainData.heightmapWidth,
                     positionOfTap.z / 1000, positionOfTap.y / terrain.terrainData.heightmapHeight);
                 if(!terrainAccessories.removeTree(normalizedPositionOfTap)) {
-                    terrainAccessories.AddTree(normalizedPositionOfTap);
+                    if(TreesRemaining > 0) {
+                        terrainAccessories.AddTree(normalizedPositionOfTap);
+                        TreesRemaining--;
+                    }
+                } else {
+                    TreesRemaining++;
                 }
                 tapActive = false;
             }
