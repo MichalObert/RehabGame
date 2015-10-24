@@ -5,9 +5,10 @@ using System;
 public class FollowHand : MonoBehaviour {
 
 	// Use this for initialization
-    private Camera camera;
     private Vector3 position;
     public Controller controller;
+    HandController leftHandController;
+    private Transform controllerTransform;
     private Quaternion cameraStartingRotation;
     private Frame currentFrame;
     private LeapEventDelegate delegateReference;
@@ -23,7 +24,9 @@ public class FollowHand : MonoBehaviour {
     //System.Diagnostics.Stopwatch stopwatchGood;
     //long goodTime = 0;
     //long testTime = 0;
-
+    private Vector3 oldControllerPosition;
+    private Vector3 overBallControllerPosition;
+    private Quaternion overBallControllerRotation;
     private Transform ball;
     private Rigidbody ballsRigidbody;
     private float ballsSpeed;
@@ -31,12 +34,12 @@ public class FollowHand : MonoBehaviour {
     private float distance = 30.0f;
     // the height we want the camera to be above the target
     private float height = 20.0f;
-
+    private bool justChangedMode = false;
     private float rotationDamping;
     private float heightDamping;
 
 	void Start () {
-        controller = ChangingHeights.Instance.controller;
+        controller = ChangingHeights.Instance.Controller;
         position = transform.position;
         cameraStartingRotation = transform.localRotation;
         delegateReference = new LeapEventDelegate(parseFrameAndRotate);
@@ -44,12 +47,15 @@ public class FollowHand : MonoBehaviour {
         cameraMovementVector = new Vector3(0, 0, 0);
         cameraRotationVector = new Vector3(0, 0, 0);
         fingerVectors = new Vector3[5];
-        camera = GetComponent<Camera>();
         GameObject ballGameObject = GameObject.Find("Ball");
         if(ballGameObject != null) {
             ball = ballGameObject.transform;
             ballsRigidbody = ball.GetComponent<Rigidbody>();
         }
+        leftHandController = GameObject.FindGameObjectWithTag("LeftHand").GetComponent<HandController>();
+        controllerTransform = leftHandController.transform;
+        overBallControllerRotation = controllerTransform.rotation;
+
         //                              use custom hand
         /*RigidHand rigidHand = (RigidHand)ChangingHeights.Instance.rightHandController.rightPhysicsModel;
         if(rigidHand.palm == null) {
@@ -61,12 +67,19 @@ public class FollowHand : MonoBehaviour {
         ((customHandModel)ChangingHeights.Instance.rightHandController.rightPhysicsModel)
             .initCustomHandModel(rigidHand.palm, rigidHand.forearm, rigidHand.wristJoint);*/
 
-	}
+    }
     void FixedUpdate() {
-   
     }
     void LateUpdate() {
-       
+        if(ChangingHeights.Instance.JustChangedMode == true) {
+            ChangingHeights.Instance.JustChangedMode = false;
+            if(ChangingHeights.Instance.Mode == ChangingHeights.Modes.Playing) {
+                changeHandControllerPosition(true);
+            } else {
+                changeHandControllerPosition(false);
+            }
+        }
+
         if(Input.GetKey(KeyCode.LeftArrow) && ChangingHeights.Instance.Mode != ChangingHeights.Modes.Playing) {
             transform.position += new Vector3(-1, 0, 0);
         }
@@ -141,15 +154,19 @@ public class FollowHand : MonoBehaviour {
        // if(canStart)
         //transform.position += Vector3.Lerp(transform.position, cameraMovementVector + transform.position, Time.deltaTime);
         restrictRightHandMovement();
+        controllerTransform.rotation = overBallControllerRotation;
     }
     private void restrictRightHandMovement() {
+        Hand justHand = ChangingHeights.Instance.getRightHand();
+      //  SkeletalHand skeletalHand = (SkeletalHand) justHand;
         HandModel rightGraphicHand = ChangingHeights.Instance.getRightGraphicHand();
         if(rightGraphicHand == null) {
             return;
         }
-        Vector3 isInCameraFOV = camera.WorldToViewportPoint(rightGraphicHand.fingers[0].GetTipPosition());
+        Vector3 isInCameraFOV = ChangingHeights.Instance.camera.WorldToViewportPoint(rightGraphicHand.fingers[0].GetTipPosition());
         if(isInCameraFOV.x > 1 || isInCameraFOV.x < 0 || isInCameraFOV.y > 1 || isInCameraFOV.y < 0) {
             Debug.Log("out");
+            //try hand.palm.transform.position
             //ChangingHeights.Instance.rightHandController. 
         }
 
@@ -184,6 +201,7 @@ public class FollowHand : MonoBehaviour {
     }
 
     private void parseFrameAndRotate() {
+
         currentFrame = controller.Frame();
         
         Hand leftHand = getLeftHand();
@@ -301,6 +319,19 @@ public class FollowHand : MonoBehaviour {
         return true;
     }
 
+    private void changeHandControllerPosition(bool getOverBall) {
+        if(getOverBall) {
+            leftHandController.transform.parent = ball;
+            oldControllerPosition = controllerTransform.position;
+            overBallControllerPosition = ball.position + new Vector3(0,10,0);
+            controllerTransform.position = overBallControllerPosition;
+            leftHandController.handMovementScale = Vector3.zero;
+        } else {
+            leftHandController.transform.parent = ChangingHeights.Instance.camera.transform;
+            leftHandController.handMovementScale = Vector3.one;
+            controllerTransform.position = oldControllerPosition;
+        }
+    }
    // public void LeapEventNotification() {
        // parseFrame();
    // }

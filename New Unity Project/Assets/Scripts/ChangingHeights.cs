@@ -19,7 +19,9 @@ public class ChangingHeights: MonoBehaviour {
     public Text modeText;
     public Text treesLeft;
     public Text groundLeft;
+    public bool JustChangedMode {get; set;}
     private float actualGroundCost;
+    public Camera camera;
     public Vector3 positionOfThumb = new Vector3(0,0,0);
     int goUp = 1;
     int hmWidth; // heightmap width 
@@ -45,7 +47,6 @@ public class ChangingHeights: MonoBehaviour {
     private TreeInstance tree;
     private int terrainLayerMask;
     private int middleOfCircle;
-
     private Modes mode;
     public Modes Mode {
         get { return mode; }
@@ -77,21 +78,23 @@ public class ChangingHeights: MonoBehaviour {
         }
     }
 
-    public Controller controller { get; private set; }
+    public Controller Controller { get; private set; }
     public static ChangingHeights Instance { get; private set; }
 
     FrameListener.LeapEventDelegate delegateReference;    
 
     void Awake() {
-        controller = new Controller();
+        Controller = new Controller();
         Instance = this;
        // frameListener = new FrameListener();
        // controller.AddListener(frameListener);
     }
     void Start() {
+        camera = Camera.FindObjectOfType<Camera>();
+        JustChangedMode = false;
      //  delegateReference = new FrameListener.LeapEventDelegate(parseFrame);
      //  frameListener.eventDelegate += delegateReference;
-        controller.EnableGesture(Gesture.GestureType.TYPE_KEY_TAP);
+        Controller.EnableGesture(Gesture.GestureType.TYPE_KEY_TAP);
         terrain = Terrain.activeTerrain;
         hmWidth = terrain.terrainData.heightmapWidth;
         hmHeight = terrain.terrainData.heightmapHeight;
@@ -128,7 +131,6 @@ public class ChangingHeights: MonoBehaviour {
             counter++;
             return;
         }*/
-        Camera camera = Camera.FindObjectOfType<Camera>();
 
         #region keyTap
         //gets keyTap position. Currently unused
@@ -255,6 +257,7 @@ public class ChangingHeights: MonoBehaviour {
              counter++;*/
         }
     void Update() {
+
         if(Input.GetKeyDown(KeyCode.LeftShift)) {
             speed = 10;
             GroundAmmountRequired();
@@ -269,13 +272,16 @@ public class ChangingHeights: MonoBehaviour {
         }
         if(Input.GetKeyDown("1")) {
             Mode = Modes.Editor;
+            JustChangedMode = true;
         }
         if(Input.GetKeyDown("2")) {
             Mode = Modes.Interactive;
-           // changeColor of hand
+            JustChangedMode = true;
+            // changeColor of hand
         }
         if(Input.GetKeyDown("3")) {
             Mode = Modes.Playing;
+            JustChangedMode = true;
         }
         if(Input.GetKey("3")) {
             terrainSelectionSizeSlider.value++;
@@ -290,14 +296,13 @@ public class ChangingHeights: MonoBehaviour {
             terrainIncrementSlider.value--;
         }
         if(Input.GetKeyDown("space")) {
-            GroundAmmountRequired();
         }
         //debuging purposes
-        if(!controller.IsConnected) {
+        if(!Controller.IsConnected) {
             heightChange = 0.001f;
             parseFrame();
         }
-        currentFrame = controller.Frame();
+        currentFrame = Controller.Frame();
         //if frame already processed
         if(currentFrame.Id == currentFrameId ) {
             return;
@@ -359,7 +364,7 @@ public class ChangingHeights: MonoBehaviour {
         }
         return null;
     }
-    private Hand getRightHand(){
+    public Hand getRightHand(){
         if(currentFrame == null) {
             return null;
         }
@@ -368,6 +373,7 @@ public class ChangingHeights: MonoBehaviour {
             rightHand = null;
             foreach (Hand hand in currentFrame.Hands){
                 if(hand.IsRight){
+         //           skeletalHand = GameObject.FindObjectOfType<SkeletalHand>();             CAN SET POSITION
                     rightHand = hand;
                     rightHandID = rightHand.Id;
                     break;
@@ -440,8 +446,6 @@ public class ChangingHeights: MonoBehaviour {
         int xCor;
         int yCor;
         float totalHeightChange = 0;
-        float low = 1;
-        float high = 0;
         middleOfCircle = (middleOfCircle == 0) ? size/2 : middleOfCircle;
         for(int i = 0; i < size; i++) {
             for(int j = 0; j < size; j++) {
