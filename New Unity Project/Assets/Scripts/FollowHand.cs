@@ -54,30 +54,23 @@ public class FollowHand : MonoBehaviour {
         }
         leftHandController = GameObject.FindGameObjectWithTag("LeftHand").GetComponent<HandController>();
         controllerTransform = leftHandController.transform;
-        overBallControllerRotation = controllerTransform.rotation;
-
-        //                              use custom hand
-        /*RigidHand rigidHand = (RigidHand)ChangingHeights.Instance.rightHandController.rightPhysicsModel;
-        if(rigidHand.palm == null) {
-            Debug.Log("wrong hand asigned");
-        }
-        ChangingHeights.Instance.rightHandController.rightPhysicsModel = null;
-        ChangingHeights.Instance.rightHandController.rightPhysicsModel = ChangingHeights
-            .Instance.rightHandController.gameObject.GetComponent<customHandModel>();
-        ((customHandModel)ChangingHeights.Instance.rightHandController.rightPhysicsModel)
-            .initCustomHandModel(rigidHand.palm, rigidHand.forearm, rigidHand.wristJoint);*/
+        leftHandController.IgnoreCollisionsWithHands(ball.gameObject, true);
 
     }
     void FixedUpdate() {
+        if(ChangingHeights.Instance.Mode == ChangingHeights.Modes.Playing && !ChangingHeights.Instance.JustChangedMode) {
+            controllerTransform.position = ball.position + new Vector3(0,2,1);
+        }
     }
     void LateUpdate() {
         if(ChangingHeights.Instance.JustChangedMode == true) {
-            ChangingHeights.Instance.JustChangedMode = false;
             if(ChangingHeights.Instance.Mode == ChangingHeights.Modes.Playing) {
                 changeHandControllerPosition(true);
             } else {
                 changeHandControllerPosition(false);
             }
+            ChangingHeights.Instance.JustChangedMode = false;
+
         }
 
         if(Input.GetKey(KeyCode.LeftArrow) && ChangingHeights.Instance.Mode != ChangingHeights.Modes.Playing) {
@@ -154,7 +147,7 @@ public class FollowHand : MonoBehaviour {
        // if(canStart)
         //transform.position += Vector3.Lerp(transform.position, cameraMovementVector + transform.position, Time.deltaTime);
         restrictRightHandMovement();
-        controllerTransform.rotation = overBallControllerRotation;
+       // controllerTransform.rotation = overBallControllerRotation;
     }
     private void restrictRightHandMovement() {
         Hand justHand = ChangingHeights.Instance.getRightHand();
@@ -222,12 +215,12 @@ public class FollowHand : MonoBehaviour {
             //hand tilted. Tips of fingers pointing upwards
             if(leftHand.Direction.Pitch > 0.8f) {
                 //cameraRotationVector.x = -Time.deltaTime * 20;  //was looking up
-                cameraMovementVector.z = -Time.deltaTime * 20;
+                cameraMovementVector.z = Time.deltaTime * 20;
             }
             //hand tilted. Tips of fingers pointing downards
             if(leftHand.Direction.Pitch < -0.15f) {
                 //cameraRotationVector.x = Time.deltaTime * 20;   //was looking down
-                cameraMovementVector.z = Time.deltaTime * 20;
+                cameraMovementVector.z = -Time.deltaTime * 20;
             }
             //hand is opened wide
             if(leftHand.SphereRadius > 150.0f  || checkOpenedHand()) {
@@ -321,13 +314,10 @@ public class FollowHand : MonoBehaviour {
 
     private void changeHandControllerPosition(bool getOverBall) {
         if(getOverBall) {
-            leftHandController.transform.parent = ball;
             oldControllerPosition = controllerTransform.position;
-            overBallControllerPosition = ball.position + new Vector3(0,10,0);
-            controllerTransform.position = overBallControllerPosition;
             leftHandController.handMovementScale = Vector3.zero;
+            Debug.Log(leftHandController.handMovementScale);
         } else {
-            leftHandController.transform.parent = ChangingHeights.Instance.camera.transform;
             leftHandController.handMovementScale = Vector3.one;
             controllerTransform.position = oldControllerPosition;
         }
