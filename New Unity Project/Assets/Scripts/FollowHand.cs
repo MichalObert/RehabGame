@@ -54,9 +54,10 @@ public class FollowHand : MonoBehaviour {
         }
         leftHandController = GameObject.FindGameObjectWithTag("LeftHand").GetComponent<HandController>();
         controllerTransform = leftHandController.transform;
-        leftHandController.IgnoreCollisionsWithHands(ball.gameObject, true);
+        //leftHandController.IgnoreCollisionsWithHands(ball.gameObject, true);
 
     }
+
     void FixedUpdate() {
         if(ChangingHeights.Instance.Mode == ChangingHeights.Modes.Playing && !ChangingHeights.Instance.JustChangedMode) {
             controllerTransform.position = ball.position + new Vector3(0,2,1);
@@ -316,7 +317,6 @@ public class FollowHand : MonoBehaviour {
         if(getOverBall) {
             oldControllerPosition = controllerTransform.position;
             leftHandController.handMovementScale = Vector3.zero;
-            Debug.Log(leftHandController.handMovementScale);
         } else {
             leftHandController.handMovementScale = Vector3.one;
             controllerTransform.position = oldControllerPosition;

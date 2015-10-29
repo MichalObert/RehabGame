@@ -77,6 +77,7 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\BallScript.cs" />
     <Compile Include="Assets\DeleteEventCatch.cs" />
     <Compile Include="Assets\DeleteEventSend.cs" />
     <Compile Include="Assets\FollowBall.cs" />
