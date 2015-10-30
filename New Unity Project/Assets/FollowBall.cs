@@ -26,8 +26,8 @@ public class FollowBall : MonoBehaviour {
 		// Update is called once per frame
 		void LateUpdate()
 		{
-			// Early out if we don't have a target
-			if (!target)
+        // Early out if we don't have a target
+        if(!target)
 				return;
 
 			// Calculate the current rotation angles
@@ -56,5 +56,5 @@ public class FollowBall : MonoBehaviour {
 
 			// Always look at the target
 			transform.LookAt(target);
-		}
+    }
 }

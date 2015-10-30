@@ -47,12 +47,17 @@ public class ChangingHeights: MonoBehaviour {
     private TreeInstance tree;
     private int terrainLayerMask;
     private int middleOfCircle;
+    public Modes oldMode;
     private Modes mode;
     public Modes Mode {
         get { return mode; }
         set {
-            mode = value;
-            modeText.text = "Mode: " + value.ToString();
+            oldMode = mode;
+            if(oldMode != value) {
+                mode = value;
+                modeText.text = "Mode: " + value.ToString();
+                JustChangedMode = true;
+            }
         }
     }
 
@@ -272,16 +277,13 @@ public class ChangingHeights: MonoBehaviour {
         }
         if(Input.GetKeyDown("1")) {
             Mode = Modes.Editor;
-            JustChangedMode = true;
         }
         if(Input.GetKeyDown("2")) {
             Mode = Modes.Interactive;
-            JustChangedMode = true;
-            // changeColor of hand
+            // !_TODO changeColor of hand
         }
         if(Input.GetKeyDown("3")) {
             Mode = Modes.Playing;
-            JustChangedMode = true;
         }
         if(Input.GetKey("3")) {
             terrainSelectionSizeSlider.value++;

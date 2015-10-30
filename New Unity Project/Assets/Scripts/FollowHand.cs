@@ -5,16 +5,15 @@ using System;
 public class FollowHand : MonoBehaviour {
 
 	// Use this for initialization
-    private Vector3 position;
+    private Vector3 cameraStartingPosition;
     public Controller controller;
     HandController leftHandController;
-    private Transform controllerTransform;
     private Quaternion cameraStartingRotation;
+    private Quaternion leftHandControllerStartingRotation;
     private Frame currentFrame;
     private LeapEventDelegate delegateReference;
     private int leftHandID;
     private int rightHandID;
-    private bool cameraIsRotated = false;
     Vector3 cameraMovementVector;
     Vector3 cameraRotationVector;
     float maxBallSize = 0;
@@ -24,6 +23,7 @@ public class FollowHand : MonoBehaviour {
     //System.Diagnostics.Stopwatch stopwatchGood;
     //long goodTime = 0;
     //long testTime = 0;
+    private Vector3 ballStartingPosition;
     private Vector3 oldControllerPosition;
     private Vector3 overBallControllerPosition;
     private Quaternion overBallControllerRotation;
@@ -33,15 +33,14 @@ public class FollowHand : MonoBehaviour {
     // The distance in the x-z plane to the target
     private float distance = 30.0f;
     // the height we want the camera to be above the target
-    private float height = 20.0f;
-    private bool justChangedMode = false;
-    private float rotationDamping;
-    private float heightDamping;
+    private float height = 15.0f;
+    private float rotationDamping = 0.01f;
+    private float heightDamping = 0.25f;
 
 	void Start () {
         controller = ChangingHeights.Instance.Controller;
-        position = transform.position;
-        cameraStartingRotation = transform.localRotation;
+        cameraStartingPosition = transform.position;
+        cameraStartingRotation = transform.rotation;
         delegateReference = new LeapEventDelegate(parseFrameAndRotate);
         ChangingHeights.Instance.eventDelegate += delegateReference;
         cameraMovementVector = new Vector3(0, 0, 0);
@@ -51,27 +50,30 @@ public class FollowHand : MonoBehaviour {
         if(ballGameObject != null) {
             ball = ballGameObject.transform;
             ballsRigidbody = ball.GetComponent<Rigidbody>();
+            ballStartingPosition = ball.transform.position;
         }
         leftHandController = GameObject.FindGameObjectWithTag("LeftHand").GetComponent<HandController>();
-        controllerTransform = leftHandController.transform;
         //leftHandController.IgnoreCollisionsWithHands(ball.gameObject, true);
 
     }
 
     void FixedUpdate() {
         if(ChangingHeights.Instance.Mode == ChangingHeights.Modes.Playing && !ChangingHeights.Instance.JustChangedMode) {
-            controllerTransform.position = ball.position + new Vector3(0,2,1);
+            leftHandController.transform.position = ball.position + new Vector3(-1.5f,6,-2);
+            leftHandController.transform.rotation = leftHandControllerStartingRotation;
         }
     }
     void LateUpdate() {
-        if(ChangingHeights.Instance.JustChangedMode == true) {
+        if(ChangingHeights.Instance.JustChangedMode == true && 
+            (ChangingHeights.Instance.oldMode == ChangingHeights.Modes.Playing 
+            || ChangingHeights.Instance.Mode == ChangingHeights.Modes.Playing)) {
+
             if(ChangingHeights.Instance.Mode == ChangingHeights.Modes.Playing) {
                 changeHandControllerPosition(true);
+                ChangingHeights.Instance.JustChangedMode = false;
             } else {
                 changeHandControllerPosition(false);
             }
-            ChangingHeights.Instance.JustChangedMode = false;
-
         }
 
         if(Input.GetKey(KeyCode.LeftArrow) && ChangingHeights.Instance.Mode != ChangingHeights.Modes.Playing) {
@@ -86,37 +88,43 @@ public class FollowHand : MonoBehaviour {
         if(Input.GetKey(KeyCode.DownArrow) & ChangingHeights.Instance.Mode != ChangingHeights.Modes.Playing) {
             transform.position += new Vector3(0, 0, -1);
         }
-        if (Input.GetAxis("Mouse ScrollWheel") < 0)    {
+        if (Input.GetAxis("Mouse ScrollWheel") < 0 & ChangingHeights.Instance.Mode != ChangingHeights.Modes.Playing)    {
             transform.position += new Vector3(0, 1, 0);
         }
-        if (Input.GetAxis("Mouse ScrollWheel") > 0) {
+        if (Input.GetAxis("Mouse ScrollWheel") > 0 & ChangingHeights.Instance.Mode != ChangingHeights.Modes.Playing) {
             transform.position += new Vector3(0, -1, 0);
         }
-        if(ChangingHeights.Instance.Mode == ChangingHeights.Modes.Editor && cameraIsRotated) {
-            transform.RotateAround(transform.position, transform.right, 65);
-            transform.Translate(Vector3.up * 80, Space.World);
+        if(ChangingHeights.Instance.Mode == ChangingHeights.Modes.Editor && ChangingHeights.Instance.JustChangedMode) {
+            transform.rotation = cameraStartingRotation;
+            transform.position = cameraStartingPosition;
+            //transform.RotateAround(transform.position, transform.right, 65);
+           // transform.Translate(Vector3.up * 80, Space.World);
             
             GameObject leftHandController = GameObject.FindGameObjectWithTag("LeftHand"); 
             GameObject rightHandController = GameObject.FindGameObjectWithTag("RightHand");
             leftHandController.transform.RotateAround(leftHandController.transform.position, transform.right, -65);
             rightHandController.transform.RotateAround(rightHandController.transform.position, transform.right, -65);
-            cameraIsRotated = false;
+            ChangingHeights.Instance.JustChangedMode = false;
         } 
-        if(ChangingHeights.Instance.Mode == ChangingHeights.Modes.Interactive && !cameraIsRotated) {
+        if(ChangingHeights.Instance.Mode == ChangingHeights.Modes.Interactive && ChangingHeights.Instance.JustChangedMode) {
+            transform.rotation = cameraStartingRotation;
+            transform.position = cameraStartingPosition;
             transform.RotateAround(transform.position, transform.right, -65);
             transform.Translate(-Vector3.up * 80, Space.World);
             GameObject leftHandController = GameObject.FindGameObjectWithTag("LeftHand");
             GameObject rightHandController = GameObject.FindGameObjectWithTag("RightHand");
             leftHandController.transform.RotateAround(leftHandController.transform.position, leftHandController.transform.right, 65);
             rightHandController.transform.RotateAround(rightHandController.transform.position, leftHandController.transform.right, 65);
-            cameraIsRotated = true;
+            ChangingHeights.Instance.JustChangedMode = false;
         }
         if(ChangingHeights.Instance.Mode == ChangingHeights.Modes.Playing) {
-        
             // Early out if we don't have a target
             if (!ball)
                 return;
-
+            if(ball.transform.position.y < ChangingHeights.Instance.terrain.transform.position.y) {
+                Debug.Log("Ball has fallen off of the terrain. Reseting balls position...");
+                ball.transform.position = ballStartingPosition;
+            }
             // Calculate the current rotation angles
             var wantedRotationAngle = ball.eulerAngles.y;
             var wantedHeight = ball.position.y + height;
@@ -126,10 +134,8 @@ public class FollowHand : MonoBehaviour {
 
             // Damp the rotation around the y-axis
             currentRotationAngle = Mathf.LerpAngle(currentRotationAngle, wantedRotationAngle, rotationDamping * Time.deltaTime);
-
             // Damp the height
             currentHeight = Mathf.Lerp(currentHeight, wantedHeight, heightDamping * Time.deltaTime);
-
             // Convert the angle into a rotation
             var currentRotation = Quaternion.Euler(0, currentRotationAngle, 0);
 
@@ -144,10 +150,9 @@ public class FollowHand : MonoBehaviour {
             // Always look at the target
             transform.LookAt(ball);
         }
-        
        // if(canStart)
         //transform.position += Vector3.Lerp(transform.position, cameraMovementVector + transform.position, Time.deltaTime);
-        restrictRightHandMovement();
+        //restrictRightHandMovement();
        // controllerTransform.rotation = overBallControllerRotation;
     }
     private void restrictRightHandMovement() {
@@ -204,24 +209,29 @@ public class FollowHand : MonoBehaviour {
             //stopwatchTest.Start();
 
             //hand rolled left
-            if(leftHand.PalmNormal.Roll > 0.80f || Input.GetKey(KeyCode.LeftArrow)) {
+            if(leftHand.PalmNormal.Roll > 0.80f) {
                 //cameraRotationVector.y = -Time.deltaTime * 20;   //was rotation to the left
                 cameraMovementVector.x = -Time.deltaTime * 20;
+                //Debug.Log("LEFT, " + leftHand.PalmNormal.Roll);
             }
             //hand rolled right
-            if(leftHand.PalmNormal.Roll < -0.30f) {
+            if(leftHand.PalmNormal.Roll < -0.25f) {
                 //cameraRotationVector.y = Time.deltaTime * 20;  //was rotation to the right
                 cameraMovementVector.x = Time.deltaTime * 20;
+                //Debug.Log("RIGHT, " + leftHand.PalmNormal.Roll);
             }
             //hand tilted. Tips of fingers pointing upwards
             if(leftHand.Direction.Pitch > 0.8f) {
                 //cameraRotationVector.x = -Time.deltaTime * 20;  //was looking up
                 cameraMovementVector.z = Time.deltaTime * 20;
+                //Debug.Log("UP, " + leftHand.Direction.Pitch);
             }
             //hand tilted. Tips of fingers pointing downards
-            if(leftHand.Direction.Pitch < -0.15f) {
+            if(leftHand.Direction.Pitch < -0.10f) {
                 //cameraRotationVector.x = Time.deltaTime * 20;   //was looking down
                 cameraMovementVector.z = -Time.deltaTime * 20;
+                //Debug.Log("DOWN, " + leftHand.Direction.Pitch);
+
             }
             //hand is opened wide
             if(leftHand.SphereRadius > 150.0f  || checkOpenedHand()) {
@@ -254,8 +264,8 @@ public class FollowHand : MonoBehaviour {
                 Debug.Log("rotation reset");
                 cameraMovementVector = new Vector3(0, 0, 0);
                 cameraRotationVector = new Vector3(0, 0, 0);
-                transform.position = position;
-                transform.localRotation = cameraStartingRotation;
+                transform.position = cameraStartingPosition;
+                transform.rotation = cameraStartingRotation;
                 switch(ChangingHeights.Instance.Mode) {
                     case ChangingHeights.Modes.Editor:
                         //nothing necessary
@@ -275,13 +285,13 @@ public class FollowHand : MonoBehaviour {
             } else {
 
                 Vector3 movement = new Vector3(cameraMovementVector.x, 0.0f, cameraMovementVector.z);
-                ballsSpeed = 10;
+                ballsSpeed = 3.5f;
                 ballsRigidbody.AddForce(movement * ballsSpeed);
             }
         }
     }
     void OnDestroy() {
-        transform.position = position;
+        transform.position = cameraStartingPosition;
         transform.rotation = cameraStartingRotation;
         ChangingHeights.Instance.eventDelegate -= delegateReference;
     }
@@ -315,11 +325,11 @@ public class FollowHand : MonoBehaviour {
 
     private void changeHandControllerPosition(bool getOverBall) {
         if(getOverBall) {
-            oldControllerPosition = controllerTransform.position;
+            oldControllerPosition = leftHandController.transform.position;
             leftHandController.handMovementScale = Vector3.zero;
         } else {
             leftHandController.handMovementScale = Vector3.one;
-            controllerTransform.position = oldControllerPosition;
+            leftHandController.transform.position = oldControllerPosition;
         }
     }
    // public void LeapEventNotification() {
