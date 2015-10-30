@@ -113,6 +113,7 @@ public class ChangingHeights: MonoBehaviour {
         actualGroundCost = -1; //as in not yet counted
         terrainLayerMask = LayerMask.NameToLayer("Terrain");
         terrainLayerMask = ~terrainLayerMask;
+        modeText.text = "Mode: " + Mode;
     }
 
     void OnDestroy() {
