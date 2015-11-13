@@ -50,7 +50,6 @@ public class FollowHand : MonoBehaviour {
         if(ballGameObject != null) {
             ball = ballGameObject.transform;
             ballsRigidbody = ball.GetComponent<Rigidbody>();
-            ballStartingPosition = ball.transform.position;
         }
         leftHandController = GameObject.FindGameObjectWithTag("LeftHand").GetComponent<HandController>();
         //leftHandController.IgnoreCollisionsWithHands(ball.gameObject, true);
@@ -121,10 +120,7 @@ public class FollowHand : MonoBehaviour {
             // Early out if we don't have a target
             if (!ball)
                 return;
-            if(ball.transform.position.y < ChangingHeights.Instance.terrain.transform.position.y) {
-                Debug.Log("Ball has fallen off of the terrain. Reseting balls position...");
-                ball.transform.position = ballStartingPosition;
-            }
+            
             // Calculate the current rotation angles
             var wantedRotationAngle = ball.eulerAngles.y;
             var wantedHeight = ball.position.y + height;
