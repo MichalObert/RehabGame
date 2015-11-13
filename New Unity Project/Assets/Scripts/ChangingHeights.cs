@@ -22,6 +22,7 @@ public class ChangingHeights: MonoBehaviour {
     public bool JustChangedMode {get; set;}
     private float actualGroundCost;
     public Camera camera;
+    private Transform shadowProjectorTransform;
     public Vector3 positionOfThumb = new Vector3(0,0,0);
     int goUp = 1;
     int hmWidth; // heightmap width 
@@ -114,6 +115,11 @@ public class ChangingHeights: MonoBehaviour {
         terrainLayerMask = LayerMask.NameToLayer("Terrain");
         terrainLayerMask = ~terrainLayerMask;
         modeText.text = "Mode: " + Mode;
+        shadowProjectorTransform = GameObject.Find("BlobShadowProjector").transform;
+        if(!shadowProjectorTransform) {
+            Debug.Log("ShadowProjectorTransform Not found!");
+        }
+        shadowProjectorTransform.gameObject.GetComponent<Projector>().orthographicSize = size;
     }
 
     void OnDestroy() {
@@ -182,9 +188,25 @@ public class ChangingHeights: MonoBehaviour {
         #endregion
 
         Finger thumb;
+        RaycastHit hit;
+        HandModel rightGraphicHand = getRightGraphicHand();
+        if(!rightGraphicHand) {
+            return;
+        }
+        FingerModel graphicThumb = rightGraphicHand.fingers[0];
+        positionOfThumb = graphicThumb.GetTipPosition();
+        Ray ray = mouseIsDown ? camera.ScreenPointToRay(Input.mousePosition) : new Ray(positionOfThumb,
+            positionOfThumb - camera.transform.position);
+        Vector3 tempCoord = new Vector3(0, 0, 0);
+        if(Physics.Raycast(ray, out hit, 1000, terrainLayerMask)) {
+            tempCoord = hit.point;
+            // Debug.DrawRay(positionOfThumb, positionOfThumb - camera.transform.position, Color.red, 1000);
+        }
+        if(rightGraphicHand != null) {
+            shadowProjectorTransform.position = tempCoord + new Vector3(0,15,0);
+        }
         //if correct gesture is detected
         if(checkForPinch(currentFrame, out thumb, 25)){
-            HandModel rightGraphicHand = getRightGraphicHand();
             //pinch detected but hund not in scene, so something is wrong
             if(rightGraphicHand == null || rightGraphicHand.fingers.Length == 0) {
                 Debug.Log("graphicHand not found");
@@ -192,8 +214,6 @@ public class ChangingHeights: MonoBehaviour {
                 return;
             }
             pinchActive = true;
-            FingerModel graphicThumb = rightGraphicHand.fingers[0];
-            positionOfThumb = graphicThumb.GetTipPosition();
             if(mode == Modes.Editor) {
                 if(thumb.TipPosition.y > 160) {
                     heightChange = 0.001f;
@@ -228,14 +248,7 @@ public class ChangingHeights: MonoBehaviour {
             pinchActive = false;
         }
 
-        RaycastHit hit;
-        Ray ray = mouseIsDown ? camera.ScreenPointToRay(Input.mousePosition) : new Ray(positionOfThumb, 
-            positionOfThumb - camera.transform.position);
-        Vector3 tempCoord = new Vector3(0, 0, 0);   
-        if(Physics.Raycast(ray, out hit, 1000,terrainLayerMask)) {
-            tempCoord = hit.point;
-           // Debug.DrawRay(positionOfThumb, positionOfThumb - camera.transform.position, Color.red, 1000);
-        }
+       
         
         // get the normalized position of hit relative to the terrain   
         Vector3 coord;
@@ -254,13 +267,13 @@ public class ChangingHeights: MonoBehaviour {
                  }
             RaiseGround();
         }
-        
-            //change everytime, but only on the size*size square
-            /* if(counter > 50) {
-                 terrainColorChanger.recolorSquare(0, 0, terrain.terrainData.alphamapWidth, terrain.terrainData.alphamapHeight);
-                 counter = 0;
-             }
-             counter++;*/
+
+        //change everytime, but only on the size*size square
+        /* if(counter > 50) {
+             terrainColorChanger.recolorSquare(0, 0, terrain.terrainData.alphamapWidth, terrain.terrainData.alphamapHeight);
+             counter = 0;
+         }
+         counter++;*/
         }
     void Update() {
 
@@ -348,6 +361,7 @@ public class ChangingHeights: MonoBehaviour {
 
     public void resizeTerrainSelection(float size) {
         this.size = (int) size;
+        shadowProjectorTransform.gameObject.GetComponent<Projector>().orthographicSize = size;
         GroundAmmountRequired();
     }
 
