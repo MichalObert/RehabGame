@@ -22,7 +22,6 @@ public class ChangingHeights: MonoBehaviour {
     public bool JustChangedMode {get; set;}
     private float actualGroundCost;
     public Camera camera;
-    private Transform shadowProjectorTransform;
     public Vector3 positionOfThumb = new Vector3(0,0,0);
     int goUp = 1;
     int hmWidth; // heightmap width 
@@ -36,7 +35,7 @@ public class ChangingHeights: MonoBehaviour {
     Vector3 mouse;
     int posXInTerrain; // position of the mouse in terrain width (x axis) 
     int posYInTerrain; // position of the mouse in terrain height (z axis)
-    int size = 10; // the diameter of terrain portion that will raise  
+    public int size = 10; // the diameter of terrain portion that will raise  
     float heightChange = 0;
     private Frame currentFrame;
     private long currentFrameId = -1;
@@ -46,7 +45,8 @@ public class ChangingHeights: MonoBehaviour {
     private int rightHandID;
     private Vector3 positionOfTap;
     private TreeInstance tree;
-    private int terrainLayerMask;
+    private FollowHand followHand;
+    public int terrainLayerMask;
     private int middleOfCircle;
     public Modes oldMode;
     private Modes mode;
@@ -115,11 +115,7 @@ public class ChangingHeights: MonoBehaviour {
         terrainLayerMask = LayerMask.NameToLayer("Terrain");
         terrainLayerMask = ~terrainLayerMask;
         modeText.text = "Mode: " + Mode;
-        shadowProjectorTransform = GameObject.Find("BlobShadowProjector").transform;
-        if(!shadowProjectorTransform) {
-            Debug.Log("ShadowProjectorTransform Not found!");
-        }
-        shadowProjectorTransform.gameObject.GetComponent<Projector>().orthographicSize = size;
+        followHand = GameObject.FindObjectOfType<FollowHand>();
     }
 
     void OnDestroy() {
@@ -138,15 +134,15 @@ public class ChangingHeights: MonoBehaviour {
         // this.parseFrame();
     }
     private void parseFrame() {
-       /* //skips every second frame
-        if((counter % 2) == 0 ){
-            counter++;
-            return;
-        }*/
+        /* //skips every second frame
+         if((counter % 2) == 0 ){
+             counter++;
+             return;
+         }*/
 
         #region keyTap
         //gets keyTap position. Currently unused
-        if(currentFrame != null && mode == Modes.Editor && ((currentFrame.Gestures() != null && !currentFrame.Gestures().IsEmpty)
+        if(currentFrame != null && (mode == Modes.Playing || mode == Modes.Editor) && ((currentFrame.Gestures() != null && !currentFrame.Gestures().IsEmpty)
             || Input.GetMouseButtonDown(1))) {
             foreach(Gesture g in currentFrame.Gestures()) {
                 if(g.Type == Gesture.GestureType.TYPE_KEY_TAP && getRightHand() != null) {
@@ -157,13 +153,24 @@ public class ChangingHeights: MonoBehaviour {
             }
             if(tapActive || Input.GetMouseButtonDown(1)) {
                 RaycastHit tapHit;
-                Ray tapRay = Input.GetMouseButtonDown(1) ? camera.ScreenPointToRay(Input.mousePosition)
-                    : new Ray(positionOfTap, positionOfTap - camera.transform.position);
-                Vector3 tapHitCoord = new Vector3(0, 0, 0);
+                Ray tapRay;
+                if(mode == Modes.Playing) {
+                    Vector3 indexFingerTipPosition = getRightGraphicHand().fingers[1].GetTipPosition();
+                    tapRay = new Ray(indexFingerTipPosition, Vector3.down);
+                } else {
+                    if(Input.GetMouseButtonDown(1)) {
+                        tapRay = camera.ScreenPointToRay(Input.mousePosition);
+                    } else {
+                        tapRay = new Ray(positionOfTap, positionOfTap - camera.transform.position);
+                    }
+                }
+                Vector3 tapHitCoord = Vector3.zero;
                 if(Physics.Raycast(tapRay, out tapHit, 1000)) {
                     tapHitCoord = tapHit.point;
                     //Debug.DrawRay(positionOfThumb, positionOfThumb - camera.transform.position, Color.red, 400);
                 }
+
+                
                 // get the normalized position of hit relative to the terrain        
                 Vector3 coord2;
                 coord2.x = tapHitCoord.x / terrain.terrainData.size.x;
@@ -202,9 +209,7 @@ public class ChangingHeights: MonoBehaviour {
             tempCoord = hit.point;
             // Debug.DrawRay(positionOfThumb, positionOfThumb - camera.transform.position, Color.red, 1000);
         }
-        if(rightGraphicHand != null) {
-            shadowProjectorTransform.position = tempCoord + new Vector3(0,15,0);
-        }
+
         //if correct gesture is detected
         if(checkForPinch(currentFrame, out thumb, 25)){
             //pinch detected but hund not in scene, so something is wrong
@@ -292,10 +297,10 @@ public class ChangingHeights: MonoBehaviour {
         if(Input.GetKeyDown("1")) {
             Mode = Modes.Editor;
         }
-        if(Input.GetKeyDown("2")) {
-            Mode = Modes.Interactive;
-            // !_TODO changeColor of hand
-        }
+        //if(Input.GetKeyDown("2")) {
+        //    Mode = Modes.Interactive;
+        //    // !_TODO changeColor of hand
+        //}
         if(Input.GetKeyDown("3")) {
             Mode = Modes.Playing;
         }
@@ -360,8 +365,14 @@ public class ChangingHeights: MonoBehaviour {
     }
 
     public void resizeTerrainSelection(float size) {
-        this.size = (int) size;
-        shadowProjectorTransform.gameObject.GetComponent<Projector>().orthographicSize = size;
+        this.size = (int)size;
+        GameObject projectorGameObject;
+        Projector projector;
+        //I can do this because slider is just for debuging
+        if(mode != Modes.Playing && (projectorGameObject = GameObject.Find("BlobShadowProjector")) 
+            && (projector = projectorGameObject.GetComponent<Projector>())){
+            projector.orthographicSize = size;
+        }
         GroundAmmountRequired();
     }
 
