@@ -32,6 +32,8 @@ public class ChangingHeights: MonoBehaviour {
     float grabDistance = 10;
     int speed = 1;
     int counter = 0;
+    public int numberOfCoinsInLevel;
+    public int numberOfRemainingCoinsInLevel;
     Vector3 mouse;
     int posXInTerrain; // position of the mouse in terrain width (x axis) 
     int posYInTerrain; // position of the mouse in terrain height (z axis)
@@ -48,6 +50,7 @@ public class ChangingHeights: MonoBehaviour {
     private FollowHand followHand;
     public int terrainLayerMask;
     private int middleOfCircle;
+    public Transform ball;
     public Modes oldMode;
     private Modes mode;
     public Modes Mode {
@@ -90,13 +93,21 @@ public class ChangingHeights: MonoBehaviour {
     FrameListener.LeapEventDelegate delegateReference;    
 
     void Awake() {
+        camera = Camera.FindObjectOfType<Camera>();
         Controller = new Controller();
         Instance = this;
-       // frameListener = new FrameListener();
-       // controller.AddListener(frameListener);
+        GameObject ballGameObject = GameObject.Find("Ball");
+        if(ballGameObject != null) {
+            ball = ballGameObject.transform;
+        }
+        // frameListener = new FrameListener();
+        // controller.AddListener(frameListener);
     }
     void Start() {
-        camera = Camera.FindObjectOfType<Camera>();
+        
+        Coin[] coins = GameObject.FindObjectsOfType<Coin>();
+        numberOfCoinsInLevel = coins.Length;
+        numberOfRemainingCoinsInLevel = numberOfCoinsInLevel;
         JustChangedMode = false;
      //  delegateReference = new FrameListener.LeapEventDelegate(parseFrame);
      //  frameListener.eventDelegate += delegateReference;
@@ -108,7 +119,7 @@ public class ChangingHeights: MonoBehaviour {
         terrainSelectionSizeSlider.onValueChanged.AddListener(resizeTerrainSelection);
         terrainIncrementSlider.value = speed;
         terrainIncrementSlider.onValueChanged.AddListener(ChangeTerrainIncrement);
-        Mode = Modes.Editor;
+        Mode = Modes.Playing;
         TreesRemaining = 5;
         GroundRemaining = 10000;
         actualGroundCost = -1; //as in not yet counted
@@ -134,16 +145,13 @@ public class ChangingHeights: MonoBehaviour {
         // this.parseFrame();
     }
     private void parseFrame() {
-        /* //skips every second frame
-         if((counter % 2) == 0 ){
-             counter++;
-             return;
-         }*/
-
         #region keyTap
-        //gets keyTap position. Currently unused
+        //gets keyTap position
+        //also plants trees. _!_TODO divide
         if(currentFrame != null && (mode == Modes.Playing || mode == Modes.Editor) && ((currentFrame.Gestures() != null && !currentFrame.Gestures().IsEmpty)
             || Input.GetMouseButtonDown(1))) {
+
+            GameObject accessoryToRemove = null;
             foreach(Gesture g in currentFrame.Gestures()) {
                 if(g.Type == Gesture.GestureType.TYPE_KEY_TAP && getRightHand() != null) {
                     positionOfTap = rightHandController.
@@ -155,6 +163,7 @@ public class ChangingHeights: MonoBehaviour {
                 RaycastHit tapHit;
                 Ray tapRay;
                 if(mode == Modes.Playing) {
+                    //Index finger
                     Vector3 indexFingerTipPosition = getRightGraphicHand().fingers[1].GetTipPosition();
                     tapRay = new Ray(indexFingerTipPosition, Vector3.down);
                 } else {
@@ -165,12 +174,12 @@ public class ChangingHeights: MonoBehaviour {
                     }
                 }
                 Vector3 tapHitCoord = Vector3.zero;
-                if(Physics.Raycast(tapRay, out tapHit, 1000)) {
-                    tapHitCoord = tapHit.point;
-                    //Debug.DrawRay(positionOfThumb, positionOfThumb - camera.transform.position, Color.red, 400);
+                if(Physics.Raycast(tapRay, out tapHit, 1000) && tapHit.collider.gameObject.tag == "Accessory") {
+                    // tapHitCoord = tapHit.point;
+                    accessoryToRemove = tapHit.collider.gameObject;
                 }
 
-                
+               /* 
                 // get the normalized position of hit relative to the terrain        
                 Vector3 coord2;
                 coord2.x = tapHitCoord.x / terrain.terrainData.size.x;
@@ -181,19 +190,22 @@ public class ChangingHeights: MonoBehaviour {
                     terrain.terrainData.GetHeight((int)positionOfTap.x, (int)positionOfTap.y));
                 Vector3 normalizedPositionOfTap = new Vector3(positionOfTap.x / terrain.terrainData.heightmapWidth,
                     positionOfTap.z / 1000, positionOfTap.y / terrain.terrainData.heightmapHeight);
-                if(!terrainAccessories.removeTree(normalizedPositionOfTap)) {
+                    */
+                if(accessoryToRemove == null/*!terrainAccessories.removeTree(normalizedPositionOfTap)*/) {
                     if(TreesRemaining > 0) {
-                        terrainAccessories.AddTree(normalizedPositionOfTap);
+                        //_!_TODO maybe some check if floor is smooth enough
+                        terrainAccessories.AddTree(/*normalizedPositionOfTap, */tapHit.point);
                         TreesRemaining--;
                     }
                 } else {
+                    terrainAccessories.removeTree(accessoryToRemove);
                     TreesRemaining++;
                 }
                 tapActive = false;
             }
         }
         #endregion
-
+        //checks for pinch
         Finger thumb;
         RaycastHit hit;
         HandModel rightGraphicHand = getRightGraphicHand();
@@ -230,31 +242,12 @@ public class ChangingHeights: MonoBehaviour {
                     }
                 }
             }
-            if(mode == Modes.Interactive) {
-                Collider[] close_things = Physics.OverlapSphere(positionOfThumb, grabDistance);
-                Vector3 distance = new Vector3(grabDistance, 0.0f, 0.0f);
-                Collider grabbedObject = null;
-                for(int j = 0; j < close_things.Length; j++) {
-                    Vector3 new_distance = positionOfThumb - close_things[j].transform.position;
-
-                    if(close_things[j].tag == "Interactable" && close_things[j].GetComponent<Rigidbody>() != null && new_distance.magnitude < distance.magnitude) {
-                        grabbedObject = close_things[j];
-                        distance = new_distance;
-                    }
-                }
-                if(grabbedObject != null) {
-                    grabbedObject.gameObject.transform.position = positionOfThumb;
-                    //Vector3 movedDistance = positionOfThumb - grabbedObject.transform.position;
-                    //grabbedObject.GetComponent<Rigidbody>().AddForce(2f * distance);
-                    grabbedObject.transform.rotation = Quaternion.identity;
-                }
-            }
         } else {
             pinchActive = false;
         }
 
        
-        
+        //raise ground
         // get the normalized position of hit relative to the terrain   
         Vector3 coord;
         coord.x = tempCoord.x / terrain.terrainData.size.x;
@@ -318,6 +311,8 @@ public class ChangingHeights: MonoBehaviour {
         }
         if(Input.GetKeyDown("space")) {
         }
+
+        
         //debuging purposes
         if(!Controller.IsConnected) {
             heightChange = 0.001f;

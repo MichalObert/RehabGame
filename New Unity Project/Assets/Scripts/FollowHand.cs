@@ -3,8 +3,10 @@ using System.Collections;
 using Leap;
 using System;
 public class FollowHand : MonoBehaviour {
-
-	// Use this for initialization
+    public float BallsSpeed {
+        get; set;
+    }
+     // Use this for initialization
     private Vector3 cameraStartingPosition;
     public Controller controller;
     HandController leftHandController;
@@ -25,6 +27,7 @@ public class FollowHand : MonoBehaviour {
     float maxBallSize = 0;
     Vector3[] fingerVectors;
     int counter;
+    private float offset;
     //System.Diagnostics.Stopwatch stopwatchTest;
     //System.Diagnostics.Stopwatch stopwatchGood;
     //long goodTime = 0;
@@ -37,11 +40,10 @@ public class FollowHand : MonoBehaviour {
     private Transform shadowProjectorTransform;
     private Transform ball;
     private Rigidbody ballsRigidbody;
-    private float ballsSpeed;
     // The distance in the x-z plane to the target
     private float distance = 30.0f;
     // the height we want the camera to be above the target
-    private float height = 15.0f;
+    private float height = 13.0f;
     private float rotationDamping = 0.01f;
     private float heightDamping = 0.25f;
 
@@ -76,12 +78,14 @@ public class FollowHand : MonoBehaviour {
         leftHandControllerStartingRotation = leftHandControllerTransform.rotation;
         rightHandControllerStartingPosition = rightHandControllerTransform.position;
         rightHandControllerStartingRotation = rightHandControllerTransform.rotation;
+        BallsSpeed = 6.5f;
+        offset = 0;
     }
 
     void FixedUpdate() {
         if(ChangingHeights.Instance.Mode == ChangingHeights.Modes.Playing && !ChangingHeights.Instance.JustChangedMode) {
-            leftHandControllerTransform.position = ball.position + new Vector3(-1.5f,6,-2);
-            leftHandControllerTransform.rotation = leftHandControllerStartingRotation;
+            leftHandControllerTransform.position = ball.position + new Vector3(-1.5f,6,-2) - transform.forward;
+            //leftHandControllerTransform.rotation = leftHandControllerStartingRotation;
 
             rightHandControllerTransform.position = ball.position;
             rightHandControllerTransform.rotation = rightHandControllerStartingRotation;
@@ -148,11 +152,12 @@ public class FollowHand : MonoBehaviour {
             rightHandController.transform.RotateAround(rightHandController.transform.position, leftHandController.transform.right, 65);
             ChangingHeights.Instance.JustChangedMode = false;
         }*/
+        //camera follows ball
         if(ChangingHeights.Instance.Mode == ChangingHeights.Modes.Playing) {
             // Early out if we don't have a target
             if (!ball)
                 return;
-            
+
             // Calculate the current rotation angles
             var wantedRotationAngle = ball.eulerAngles.y;
             var wantedHeight = ball.position.y + height;
@@ -160,23 +165,36 @@ public class FollowHand : MonoBehaviour {
             var currentRotationAngle = transform.eulerAngles.y;
             var currentHeight = transform.position.y;
 
-            // Damp the rotation around the y-axis
-            currentRotationAngle = Mathf.LerpAngle(currentRotationAngle, wantedRotationAngle, rotationDamping * Time.deltaTime);
-            // Damp the height
-            currentHeight = Mathf.Lerp(currentHeight, wantedHeight, heightDamping * Time.deltaTime);
-            // Convert the angle into a rotation
-            var currentRotation = Quaternion.Euler(0, currentRotationAngle, 0);
 
+            // Damp the rotation around the y-axis
+      //      currentRotationAngle = Mathf.LerpAngle(currentRotationAngle, wantedRotationAngle, rotationDamping * Time.deltaTime);
+            // Damp the height
+
+            //_!_TODO try to use slerp
+       //     currentHeight = Mathf.Lerp(currentHeight, wantedHeight, heightDamping * Time.deltaTime);
+           
+            // Convert the angle into a rotation
+      //      var currentRotation = Quaternion.Euler(0, currentRotationAngle, 0);
             // Set the position of the camera on the x-z plane to:
             // distance meters behind the target
-            transform.position = ball.position;
-            transform.position -= currentRotation * Vector3.forward * distance;
-
-            // Set the height of the camera
-            transform.position = new Vector3(transform.position.x ,currentHeight , transform.position.z);
-
+            transform.parent.position = ball.position;
+            transform.localPosition = Vector3.zero;
+            transform.localPosition -= Vector3.forward * distance;
+            transform.parent.Rotate(Vector3.up, cameraMovementVector.x);
+            leftHandControllerTransform.rotation = transform.rotation;
+            leftHandControllerTransform.Rotate(Vector3.up, -30, Space.World);
+            if((offset > -10 && cameraMovementVector.z < 0)||(offset < 10 && cameraMovementVector.z > 0)) {
+                offset += cameraMovementVector.z / 10;
+            }
+         //   transform.position = ball.position;
+         //   transform.position -= currentRotation * Vector3.forward * distance;
+         // Set the height of the camera
+            transform.position = new Vector3(transform.position.x ,wantedHeight , transform.position.z);
             // Always look at the target
-            transform.LookAt(ball);
+            transform.LookAt(ball.position + new Vector3(0,offset,0));
+
+            cameraMovementVector = Vector3.zero;
+
             MoveShadow(false);
         } else {
             MoveShadow(true);
@@ -233,14 +251,14 @@ public class FollowHand : MonoBehaviour {
     private void parseFrameAndRotate() {
 
         currentFrame = controller.Frame();
-        
+
         Hand leftHand = getLeftHand();
         if(leftHand != null) {
             //stopwatchGood.Start();
             //stopwatchTest.Start();
 
             //hand rolled left
-            if(leftHand.PalmNormal.Roll > 0.80f) {
+            if(leftHand.PalmNormal.Roll > 1.20f) {
                 //cameraRotationVector.y = -Time.deltaTime * 20;   //was rotation to the left
                 cameraMovementVector.x = -Time.deltaTime * 20;
                 //Debug.Log("LEFT, " + leftHand.PalmNormal.Roll);
@@ -252,7 +270,7 @@ public class FollowHand : MonoBehaviour {
                 //Debug.Log("RIGHT, " + leftHand.PalmNormal.Roll);
             }
             //hand tilted. Tips of fingers pointing upwards
-            if(leftHand.Direction.Pitch > 0.8f) {
+            if(leftHand.Direction.Pitch > 1) {
                 //cameraRotationVector.x = -Time.deltaTime * 20;  //was looking up
                 cameraMovementVector.z = Time.deltaTime * 20;
                 //Debug.Log("UP, " + leftHand.Direction.Pitch);
@@ -265,7 +283,7 @@ public class FollowHand : MonoBehaviour {
 
             }
             //hand is opened wide
-            if(leftHand.SphereRadius > 150.0f  || checkOpenedHand()) {
+            if(leftHand.SphereRadius > 150.0f || checkOpenedHand()) {
                 //transform.Translate(Vector3.up * Time.deltaTime * 20,Space.World);
                 cameraMovementVector.y = Time.deltaTime * 20;
             }
@@ -297,15 +315,15 @@ public class FollowHand : MonoBehaviour {
                 cameraRotationVector = new Vector3(0, 0, 0);
                 transform.position = cameraStartingPosition;
                 transform.rotation = cameraStartingRotation;
-                switch(ChangingHeights.Instance.Mode) {
-                    case ChangingHeights.Modes.Editor:
-                        //nothing necessary
-                        break;
-                    case ChangingHeights.Modes.Interactive:
-                        transform.RotateAround(transform.position, transform.right, -65);
-                        transform.Translate(-Vector3.up * 80, Space.World);
-                        break;
-                }
+                //switch(ChangingHeights.Instance.Mode) {
+                //    case ChangingHeights.Modes.Editor:
+                //        //nothing necessary
+                //        break;
+                //    case ChangingHeights.Modes.Interactive:
+                //        transform.RotateAround(transform.position, transform.right, -65);
+                //        transform.Translate(-Vector3.up * 80, Space.World);
+                //        break;
+                //}
             }
             if(ChangingHeights.Instance.Mode != ChangingHeights.Modes.Playing) {
                 transform.Translate(cameraMovementVector, Space.World);
@@ -314,15 +332,23 @@ public class FollowHand : MonoBehaviour {
                 cameraMovementVector = Vector3.zero;
                 cameraRotationVector = Vector3.zero;
             } else {
-                Vector3 movement = new Vector3(cameraMovementVector.x, 0.0f, cameraMovementVector.z);
-                ballsSpeed = 3.5f;
-                ballsRigidbody.AddForce(movement * ballsSpeed);
+                Vector3 movement = transform.forward + new Vector3(cameraMovementVector.x, 0.0f, cameraMovementVector.z);
+                //turning to oposite direction
+                if((cameraMovementVector.x > 0 && ballsRigidbody.velocity.x < 0)
+                    || (cameraMovementVector.x < 0 && ballsRigidbody.velocity.x > 0)){
+                    movement.x *= 2;
+                }
+                //if(ballsRigidbody.velocity.x > 15) {
+                //    movement.x = 0;
+                //}
+                //if(ballsRigidbody.velocity.z > 15) {
+                //    movement.z = 0;
+                //}
+                ballsRigidbody.AddForce(movement * BallsSpeed);
             }
         }
     }
     void OnDestroy() {
-        transform.position = cameraStartingPosition;
-        transform.rotation = cameraStartingRotation;
         ChangingHeights.Instance.eventDelegate -= delegateReference;
     }
 
@@ -377,14 +403,6 @@ public class FollowHand : MonoBehaviour {
         Ray ray = fromCamera ? new Ray(fingerTipPosition, fingerTipPosition - ChangingHeights.Instance.camera.transform.position): new Ray(fingerTipPosition,Vector3.down);
         if(Physics.Raycast(ray, out hit, 200, ChangingHeights.Instance.terrainLayerMask)) {
             shadowProjectorTransform.position = hit.point + new Vector3(0, 15, 0);//maybe 22
-            // Debug.DrawRay(positionOfThumb, positionOfThumb - camera.transform.position, Color.red, 1000);
         }
-
     }
-
-
-   // public void LeapEventNotification() {
-       // parseFrame();
-   // }
 }
-// The target we are following
