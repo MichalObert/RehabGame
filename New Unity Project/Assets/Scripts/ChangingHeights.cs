@@ -129,6 +129,45 @@ public class ChangingHeights: MonoBehaviour {
         followHand = GameObject.FindObjectOfType<FollowHand>();
     }
 
+    //_!_TODO delete this method
+    private void tiltGround() {
+        int offset = size / 2;
+        // get the heights of the terrain at given position
+        float[,] heights = terrain.terrainData.GetHeights(0,0, size, size);
+        heightChange = 1;
+        int xCor;
+        int yCor;
+        for(int i = 0; i < size; i++) {
+            for(int j = 0; j < size; j++) {
+                //circle equation
+           //   here
+                    //      if(exp ^ -((1 / 2) * (i - middleOfCircle) * (i - middleOfCircle) + 1 / 2 * (j - middleOfCircle) * (j - middleOfCircle)) < middleOfCircle * middleOfCircle) { 
+                    //  heights[i, j] += heightChange;
+                    xCor = i - middleOfCircle;
+                    yCor = j - middleOfCircle;
+                    if(xCor < 0)
+                        xCor = -xCor;
+                    if(yCor < 0)
+                        yCor = -yCor;
+                    //not working, making cross
+                    //heights[i, j] += heightChange * (((middleOfCircle - xCor) / middleOfCircle) + ((middleOfCircle - yCor) / middleOfCircle)) / 2;
+                    //try this. If not, try to not add xcor and ycor together...
+                    float newHeightChange = heightChange * ((middleOfCircle - xCor) + (middleOfCircle - yCor)) / 2;
+                    if(((middleOfCircle - xCor) + (middleOfCircle - yCor)) / 2 >= 15) {
+                        //slow down raising closer to the middleOfCircle of circle;
+                        newHeightChange *= 0.6f;
+                    }
+                    heights[i, j] += newHeightChange;
+                    //  heights[i, j] += ((middleOfCircle - i)) > 0 ? (middleOfCircle - i) / 20 : 0;
+                    //heights[i, j] += ((middleOfCircle - j) / 20) > 0? (middleOfCircle-j)/20 : 0;
+            }
+        }
+
+        // set the new height
+        terrain.terrainData.SetHeights(posXInTerrain - offset, posYInTerrain - offset, heights);
+        terrainColorChanger.recolorSquare(posXInTerrain - offset, posYInTerrain - offset, size, size);
+        GroundRemaining -= (int)actualGroundCost;
+    }
     void OnDestroy() {
         //frameListener.eventDelegate -= new FrameListener.LeapEventDelegate(parseFrame);
        // controller.RemoveListener(frameListener);
