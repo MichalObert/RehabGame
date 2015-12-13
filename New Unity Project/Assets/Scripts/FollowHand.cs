@@ -6,7 +6,12 @@ public class FollowHand : MonoBehaviour {
     public float BallsSpeed {
         get; set;
     }
-     // Use this for initialization
+    private DirrectionLightUp leftArrow;
+    private DirrectionLightUp rightArrow;
+    private DirrectionLightUp upArrow;
+    private DirrectionLightUp downArrow;
+
+    // Use this for initialization
     private Vector3 cameraStartingPosition;
     public Controller controller;
     HandController leftHandController;
@@ -47,7 +52,12 @@ public class FollowHand : MonoBehaviour {
     private float rotationDamping = 0.01f;
     private float heightDamping = 0.25f;
 
-	void Start () {
+    void Start() {
+    
+        leftArrow =  GameObject.Find("LeftArrow").GetComponent<DirrectionLightUp>();
+        rightArrow =  GameObject.Find("RightArrow").GetComponent<DirrectionLightUp>();
+        upArrow =  GameObject.Find("UpArrow").GetComponent<DirrectionLightUp>();
+        downArrow =  GameObject.Find("DownArrow").GetComponent<DirrectionLightUp>();
         controller = ChangingHeights.Instance.Controller;
         cameraStartingPosition = transform.position;
         cameraStartingRotation = transform.rotation;
@@ -192,7 +202,6 @@ public class FollowHand : MonoBehaviour {
             transform.position = new Vector3(transform.position.x ,wantedHeight , transform.position.z);
             // Always look at the target
             transform.LookAt(ball.position + new Vector3(0,offset,0));
-
             cameraMovementVector = Vector3.zero;
 
             MoveShadow(false);
@@ -335,10 +344,29 @@ public class FollowHand : MonoBehaviour {
                 Vector3 movement = transform.forward + new Vector3(cameraMovementVector.x, 0.0f, cameraMovementVector.z);
                 //turning to oposite direction
                 if((cameraMovementVector.x > 0 && ballsRigidbody.velocity.x < 0)
-                    || (cameraMovementVector.x < 0 && ballsRigidbody.velocity.x > 0)){
+                    || (cameraMovementVector.x < 0 && ballsRigidbody.velocity.x > 0)) {
                     movement.x *= 2;
                 }
-                //if(ballsRigidbody.velocity.x > 15) {
+                if(cameraMovementVector.x < 0) {
+                    leftArrow.ChangeState(true);
+                } else {
+                    leftArrow.ChangeState(false);
+                }
+                if(cameraMovementVector.x > 0) {
+                    rightArrow.ChangeState(true);
+                } else {
+                    rightArrow.ChangeState(false);
+                }
+                if(cameraMovementVector.z > 0) {
+                    upArrow.ChangeState(true);
+                } else {
+                    upArrow.ChangeState(false);
+                }
+                if(cameraMovementVector.z < 0) {
+                    downArrow.ChangeState(true);
+                } else {
+                    downArrow.ChangeState(false);
+                }//if(ballsRigidbody.velocity.x > 15) {
                 //    movement.x = 0;
                 //}
                 //if(ballsRigidbody.velocity.z > 15) {
@@ -346,6 +374,11 @@ public class FollowHand : MonoBehaviour {
                 //}
                 ballsRigidbody.AddForce(movement * BallsSpeed);
             }
+        } else {
+            leftArrow.ChangeState(false);
+            rightArrow.ChangeState(false);
+            upArrow.ChangeState(false);
+            downArrow.ChangeState(false);
         }
     }
     void OnDestroy() {

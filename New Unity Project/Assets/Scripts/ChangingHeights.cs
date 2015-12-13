@@ -7,6 +7,7 @@ using UnityEngine.UI;
 public delegate void LeapEventDelegate();
 
 public class ChangingHeights: MonoBehaviour {
+    int i = 0;
     public enum Modes { Editor, Interactive, Playing };
     public Terrain terrain;
     public TerrainColorChanger terrainColorChanger;
@@ -130,44 +131,24 @@ public class ChangingHeights: MonoBehaviour {
     }
 
     //_!_TODO delete this method
-    private void tiltGround() {
-        int offset = size / 2;
-        // get the heights of the terrain at given position
-        float[,] heights = terrain.terrainData.GetHeights(0,0, size, size);
-        heightChange = 1;
-        int xCor;
-        int yCor;
-        for(int i = 0; i < size; i++) {
-            for(int j = 0; j < size; j++) {
-                //circle equation
-           //   here
-                    //      if(exp ^ -((1 / 2) * (i - middleOfCircle) * (i - middleOfCircle) + 1 / 2 * (j - middleOfCircle) * (j - middleOfCircle)) < middleOfCircle * middleOfCircle) { 
-                    //  heights[i, j] += heightChange;
-                    xCor = i - middleOfCircle;
-                    yCor = j - middleOfCircle;
-                    if(xCor < 0)
-                        xCor = -xCor;
-                    if(yCor < 0)
-                        yCor = -yCor;
-                    //not working, making cross
-                    //heights[i, j] += heightChange * (((middleOfCircle - xCor) / middleOfCircle) + ((middleOfCircle - yCor) / middleOfCircle)) / 2;
-                    //try this. If not, try to not add xcor and ycor together...
-                    float newHeightChange = heightChange * ((middleOfCircle - xCor) + (middleOfCircle - yCor)) / 2;
-                    if(((middleOfCircle - xCor) + (middleOfCircle - yCor)) / 2 >= 15) {
-                        //slow down raising closer to the middleOfCircle of circle;
-                        newHeightChange *= 0.6f;
-                    }
-                    heights[i, j] += newHeightChange;
-                    //  heights[i, j] += ((middleOfCircle - i)) > 0 ? (middleOfCircle - i) / 20 : 0;
-                    //heights[i, j] += ((middleOfCircle - j) / 20) > 0? (middleOfCircle-j)/20 : 0;
-            }
-        }
-
-        // set the new height
-        terrain.terrainData.SetHeights(posXInTerrain - offset, posYInTerrain - offset, heights);
-        terrainColorChanger.recolorSquare(posXInTerrain - offset, posYInTerrain - offset, size, size);
-        GroundRemaining -= (int)actualGroundCost;
-    }
+       //private void tiltGround(int boolean) {
+       // // get the heights of the terrain at given position
+       // float[,] heights = terrain.terrainData.GetHeights(0, 0, terrain.terrainData.heightmapWidth, terrain.terrainData.heightmapHeight);
+       // for(int i = terrain.terrainData.heightmapWidth -1; i >= 0; i--) {
+       //     for(int j = terrain.terrainData.heightmapHeight - 1; j >=0 ; j--) {
+       //         float newHeightChange = (int)(j / 2) *0.001f;
+       //         if(boolean == 0) {
+       //             heights[i,j] = newHeightChange;
+       //         } else {
+       //             heights[i, j] = 0;
+       //         }
+       //     }
+       // }
+    //    terrain.terrainData.SetHeights(0, 0, heights);
+    //    //Debug.Log(heights.Length);
+    //    //     terrainColorChanger.recolorSquare(0, 0, terrain.terrainData.heightmapWidth, terrain.terrainData.heightmapHeight);
+    //    Debug.Log("did it");
+    //}
     void OnDestroy() {
         //frameListener.eventDelegate -= new FrameListener.LeapEventDelegate(parseFrame);
        // controller.RemoveListener(frameListener);
@@ -349,6 +330,7 @@ public class ChangingHeights: MonoBehaviour {
             terrainIncrementSlider.value--;
         }
         if(Input.GetKeyDown("space")) {
+ 
         }
 
         

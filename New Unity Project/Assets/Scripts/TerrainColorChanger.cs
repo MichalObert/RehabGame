@@ -42,28 +42,40 @@ public class TerrainColorChanger : MonoBehaviour {
                 if(currentHeight < 22) {
                     splatWeights[0] = 1;
                     splatWeights[1] = 0;
-                    splatWeights[2] = 0;
+                    if(splatWeights.Length > 2) {
+                        splatWeights[2] = 0;
+                    }
                 }
                 if(currentHeight >= 22 && currentHeight <= 29) {
                     splatWeights[0] = Mathf.Clamp01((29 - currentHeight)/29);
                     splatWeights[1] = Mathf.Clamp01(currentHeight/29);
-                    splatWeights[2] = 0;
+                    if(splatWeights.Length > 2) {
+                        splatWeights[2] = 0;
+                    }
                 }
                 if(currentHeight > 29 && currentHeight < 35) {
                     splatWeights[0] = 0;
                     splatWeights[1] = 1;
-                    splatWeights[2] = 0;
+                    if(splatWeights.Length > 2) {
+                        splatWeights[2] = 0;
+                    }
                 }
                 if(currentHeight >= 35 && currentHeight <= 100) {
                     splatWeights[0] = 0;
                     splatWeights[1] = Mathf.Clamp01(/*terrainData.heightmapHeight */(100 - currentHeight)/100);
-                    splatWeights[2] = Mathf.Clamp01(currentHeight/100);
+                    if(splatWeights.Length > 2) {
+                        splatWeights[2] = Mathf.Clamp01(currentHeight / 100);
+                    }
            //         does not work as it should for smaller squares. Test with debugs here
                 }
                 if(currentHeight > 100) {
                     splatWeights[0] = 0;
                     splatWeights[1] = 0;
-                    splatWeights[2] = 1;
+                    if(splatWeights.Length > 2) {
+                        splatWeights[2] = 1;
+                    } else {
+                        splatWeights[1] = 1;
+                    }
                 }
               //  Debug.Log("currentHeight: " + currentHeight);
                 //ADDING STEEPNESS AND NORMALS. Currently unused

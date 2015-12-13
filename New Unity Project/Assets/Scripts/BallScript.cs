@@ -7,6 +7,7 @@ public class BallScript : MonoBehaviour {
     // Use this for initialization
     Transform ball;
     Rigidbody ballRigidBody;
+    GameObject targetForBall;
 
     void Start() {
         GameObject ballGameObject = GameObject.Find("Ball");
@@ -25,10 +26,10 @@ public class BallScript : MonoBehaviour {
         }
         startingPosition += new Vector3(0, 22, 0);
         transform.position = startingPosition;
-        ChangingHeights.Instance.camera.transform.parent.Rotate(Vector3.up, -90);
-        //_!_TODO FIX!!!
-
-
+        targetForBall = GameObject.Find("TargetForBall");
+        if(targetForBall) {
+            ChangingHeights.Instance.camera.transform.parent.rotation = Quaternion.LookRotation(Vector3.RotateTowards(transform.forward, targetForBall.transform.position - transform.position, 2,0.0f));
+        }
     }
 
     void FixedUpdate() {

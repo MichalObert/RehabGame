@@ -14,6 +14,7 @@ public class Returner : MonoBehaviour {
 	}
 
     void OnTriggerEnter() {
+        Debug.Log("This is not the right place to be. Returning to start...");
         ballScript.Invoke("ReturnToStart", 1.2f);
     }
         // Update is called once per frame
