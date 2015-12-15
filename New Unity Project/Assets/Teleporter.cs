@@ -18,7 +18,6 @@ public class Teleporter : MonoBehaviour {
         other.gameObject.GetComponent<Rigidbody>().velocity = Vector3.zero;
         other.gameObject.GetComponent<Rigidbody>().angularVelocity = Vector3.zero;
         ChangingHeights.Instance.camera.transform.parent.Rotate(Vector3.up, 60);
-        //_!_TODO finish this (line up camera with futureTarget and ball
     }
 
 
