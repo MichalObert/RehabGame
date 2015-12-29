@@ -52,17 +52,22 @@ public class FollowHand : MonoBehaviour {
     private float rotationDamping = 0.01f;
     private float heightDamping = 0.25f;
 
+    void Awake() {
+        shadowProjectorTransform = GameObject.Find("BlobShadowProjector").transform;
+        if(!shadowProjectorTransform) {
+            Debug.Log("ShadowProjectorTransform Not found!");
+        }
+        shadowProjector = shadowProjectorTransform.gameObject.GetComponent<Projector>();
+    }
     void Start() {
-    
-        leftArrow =  GameObject.Find("LeftArrow").GetComponent<DirrectionLightUp>();
-        rightArrow =  GameObject.Find("RightArrow").GetComponent<DirrectionLightUp>();
-        upArrow =  GameObject.Find("UpArrow").GetComponent<DirrectionLightUp>();
-        downArrow =  GameObject.Find("DownArrow").GetComponent<DirrectionLightUp>();
-        controller = ChangingHeights.Instance.Controller;
+
+        leftArrow = GameObject.Find("LeftArrow").GetComponent<DirrectionLightUp>();
+        rightArrow = GameObject.Find("RightArrow").GetComponent<DirrectionLightUp>();
+        upArrow = GameObject.Find("UpArrow").GetComponent<DirrectionLightUp>();
+        downArrow = GameObject.Find("DownArrow").GetComponent<DirrectionLightUp>();
         cameraStartingPosition = transform.position;
         cameraStartingRotation = transform.rotation;
         delegateReference = new LeapEventDelegate(parseFrameAndRotate);
-        ChangingHeights.Instance.eventDelegate += delegateReference;
         cameraMovementVector = new Vector3(0, 0, 0);
         cameraRotationVector = new Vector3(0, 0, 0);
         fingerVectors = new Vector3[5];
@@ -72,12 +77,7 @@ public class FollowHand : MonoBehaviour {
             ballsRigidbody = ball.GetComponent<Rigidbody>();
         }
 
-        shadowProjectorTransform = GameObject.Find("BlobShadowProjector").transform;
-        if(!shadowProjectorTransform) {
-            Debug.Log("ShadowProjectorTransform Not found!");
-        }
-        shadowProjector = shadowProjectorTransform.gameObject.GetComponent<Projector>();
-        shadowProjector.orthographicSize = ChangingHeights.Instance.size;
+       
 
         leftHandControllerTransform = GameObject.FindGameObjectWithTag("LeftHand").transform;
         rightHandControllerTransform = GameObject.FindGameObjectWithTag("RightHand").transform;
@@ -90,16 +90,17 @@ public class FollowHand : MonoBehaviour {
         rightHandControllerStartingRotation = rightHandControllerTransform.rotation;
         BallsSpeed = 6.5f;
         offset = 0;
+
     }
 
-    void FixedUpdate() {
-        if(ChangingHeights.Instance.Mode == ChangingHeights.Modes.Playing && !ChangingHeights.Instance.JustChangedMode) {
-            leftHandControllerTransform.position = ball.position + new Vector3(-1.5f,6,-2) - transform.forward;
-            //leftHandControllerTransform.rotation = leftHandControllerStartingRotation;
+    public void SetUp() {
+        ChangingHeights.Instance.eventDelegate += delegateReference;
+        controller = ChangingHeights.Instance.Controller;
 
-            rightHandControllerTransform.position = ball.position;
-            rightHandControllerTransform.rotation = rightHandControllerStartingRotation;
-        }
+        shadowProjector.orthographicSize = ChangingHeights.Instance.size;
+    }
+    void FixedUpdate() {
+        
     }
     void LateUpdate() {
         if(ChangingHeights.Instance.JustChangedMode == true && 
@@ -149,23 +150,30 @@ public class FollowHand : MonoBehaviour {
             // leftHandController.transform.RotateAround(leftHandController.transform.position, transform.right, -65);
             // rightHandController.transform.RotateAround(rightHandController.transform.position, transform.right, -65);
             ChangingHeights.Instance.JustChangedMode = false;
-        } 
+        }
+        if(ChangingHeights.Instance.Mode == ChangingHeights.Modes.Playing && !ChangingHeights.Instance.JustChangedMode) {
+            leftHandControllerTransform.position = ball.position + new Vector3(-1.5f, 6, -2) - transform.forward;
+            //leftHandControllerTransform.rotation = leftHandControllerStartingRotation;
+
+            rightHandControllerTransform.position = ball.position;
+            rightHandControllerTransform.rotation = rightHandControllerStartingRotation;
+        }
         //not gona use this mode
-      /*  if(ChangingHeights.Instance.Mode == ChangingHeights.Modes.Interactive && ChangingHeights.Instance.JustChangedMode) {
-            transform.rotation = cameraStartingRotation;
-            transform.position = cameraStartingPosition;
-            transform.RotateAround(transform.position, transform.right, -65);
-            transform.Translate(-Vector3.up * 80, Space.World);
-            GameObject leftHandController = GameObject.FindGameObjectWithTag("LeftHand");
-            GameObject rightHandController = GameObject.FindGameObjectWithTag("RightHand");
-            leftHandController.transform.RotateAround(leftHandController.transform.position, leftHandController.transform.right, 65);
-            rightHandController.transform.RotateAround(rightHandController.transform.position, leftHandController.transform.right, 65);
-            ChangingHeights.Instance.JustChangedMode = false;
-        }*/
+        /*  if(ChangingHeights.Instance.Mode == ChangingHeights.Modes.Interactive && ChangingHeights.Instance.JustChangedMode) {
+              transform.rotation = cameraStartingRotation;
+              transform.position = cameraStartingPosition;
+              transform.RotateAround(transform.position, transform.right, -65);
+              transform.Translate(-Vector3.up * 80, Space.World);
+              GameObject leftHandController = GameObject.FindGameObjectWithTag("LeftHand");
+              GameObject rightHandController = GameObject.FindGameObjectWithTag("RightHand");
+              leftHandController.transform.RotateAround(leftHandController.transform.position, leftHandController.transform.right, 65);
+              rightHandController.transform.RotateAround(rightHandController.transform.position, leftHandController.transform.right, 65);
+              ChangingHeights.Instance.JustChangedMode = false;
+          }*/
         //camera follows ball
         if(ChangingHeights.Instance.Mode == ChangingHeights.Modes.Playing) {
             // Early out if we don't have a target
-            if (!ball)
+            if(!ball)
                 return;
 
             // Calculate the current rotation angles
@@ -177,14 +185,14 @@ public class FollowHand : MonoBehaviour {
 
 
             // Damp the rotation around the y-axis
-      //      currentRotationAngle = Mathf.LerpAngle(currentRotationAngle, wantedRotationAngle, rotationDamping * Time.deltaTime);
+            //      currentRotationAngle = Mathf.LerpAngle(currentRotationAngle, wantedRotationAngle, rotationDamping * Time.deltaTime);
             // Damp the height
 
             //_!_TODO try to use slerp
-       //     currentHeight = Mathf.Lerp(currentHeight, wantedHeight, heightDamping * Time.deltaTime);
-           
+            //     currentHeight = Mathf.Lerp(currentHeight, wantedHeight, heightDamping * Time.deltaTime);
+
             // Convert the angle into a rotation
-      //      var currentRotation = Quaternion.Euler(0, currentRotationAngle, 0);
+            //      var currentRotation = Quaternion.Euler(0, currentRotationAngle, 0);
             // Set the position of the camera on the x-z plane to:
             // distance meters behind the target
             transform.parent.position = ball.position;
@@ -257,6 +265,7 @@ public class FollowHand : MonoBehaviour {
         return leftHand;
     }
 
+   
     private void parseFrameAndRotate() {
 
         currentFrame = controller.Frame();
@@ -366,13 +375,10 @@ public class FollowHand : MonoBehaviour {
                     downArrow.ChangeState(true);
                 } else {
                     downArrow.ChangeState(false);
-                }//if(ballsRigidbody.velocity.x > 15) {
-                //    movement.x = 0;
-                //}
-                //if(ballsRigidbody.velocity.z > 15) {
-                //    movement.z = 0;
-                //}
-                ballsRigidbody.AddForce(movement * BallsSpeed);
+                }
+                if(Time.timeScale > 0.1f) {
+                    ballsRigidbody.AddForce(movement * BallsSpeed);
+                }
             }
         } else {
             leftArrow.ChangeState(false);
@@ -382,7 +388,9 @@ public class FollowHand : MonoBehaviour {
         }
     }
     void OnDestroy() {
-        ChangingHeights.Instance.eventDelegate -= delegateReference;
+        if(Application.loadedLevel != 0) {
+            ChangingHeights.Instance.eventDelegate -= delegateReference;
+        }
     }
 
 

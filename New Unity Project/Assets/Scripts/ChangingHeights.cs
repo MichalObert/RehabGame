@@ -15,8 +15,6 @@ public class ChangingHeights: MonoBehaviour {
     InteractionBox iBox;
     private FrameListener frameListener;
     public HandController rightHandController;
-    public Slider terrainSelectionSizeSlider;
-    public Slider terrainIncrementSlider;
     public Text modeText;
     public Text treesLeft;
     public Text groundLeft;
@@ -60,7 +58,9 @@ public class ChangingHeights: MonoBehaviour {
             oldMode = mode;
             if(oldMode != value) {
                 mode = value;
-                modeText.text = "Mode: " + value.ToString();
+                if(modeText) {
+                    modeText.text = "Mode: " + value.ToString();
+                }
                 JustChangedMode = true;
             }
         }
@@ -73,7 +73,7 @@ public class ChangingHeights: MonoBehaviour {
         }
         set {
             treesRemaining = value;
-            treesLeft.text = "Trees left: " + value.ToString();
+            treesLeft.text = "Walls left: " + value.ToString();
         }
     }
 
@@ -84,7 +84,9 @@ public class ChangingHeights: MonoBehaviour {
         }
         set {
             groundRemaining = value;
-            groundLeft.text = "Ground left: " + value.ToString();
+            if(groundLeft) {
+                groundLeft.text = "Ground left: " + value.ToString();
+            }
         }
     }
 
@@ -94,41 +96,46 @@ public class ChangingHeights: MonoBehaviour {
     FrameListener.LeapEventDelegate delegateReference;    
 
     void Awake() {
+        SetUp();
+    }
+    public void SetUp() {
+        rightHandController = GameObject.Find("Right Hand").GetComponent<HandController>();
+        GameObject mode = GameObject.Find("Mode");
+        GameObject raising = GameObject.Find("Raising");
+        if(mode) {
+            modeText = mode.GetComponent<Text>();
+        }
+        treesLeft = GameObject.Find("Trees").GetComponent<Text>();
+        if(raising) {
+            groundLeft = raising.GetComponent<Text>();
+        }
+        Instance = this;
         camera = Camera.FindObjectOfType<Camera>();
         Controller = new Controller();
-        Instance = this;
         GameObject ballGameObject = GameObject.Find("Ball");
         if(ballGameObject != null) {
             ball = ballGameObject.transform;
         }
-        // frameListener = new FrameListener();
-        // controller.AddListener(frameListener);
-    }
-    void Start() {
-        
         Coin[] coins = GameObject.FindObjectsOfType<Coin>();
         numberOfCoinsInLevel = coins.Length;
         numberOfRemainingCoinsInLevel = numberOfCoinsInLevel;
-        JustChangedMode = false;
-     //  delegateReference = new FrameListener.LeapEventDelegate(parseFrame);
-     //  frameListener.eventDelegate += delegateReference;
+        JustChangedMode = false;    
         Controller.EnableGesture(Gesture.GestureType.TYPE_KEY_TAP);
         terrain = Terrain.activeTerrain;
         hmWidth = terrain.terrainData.heightmapWidth;
         hmHeight = terrain.terrainData.heightmapHeight;
-        terrainSelectionSizeSlider.value = size;
-        terrainSelectionSizeSlider.onValueChanged.AddListener(resizeTerrainSelection);
-        terrainIncrementSlider.value = speed;
-        terrainIncrementSlider.onValueChanged.AddListener(ChangeTerrainIncrement);
         Mode = Modes.Playing;
         TreesRemaining = 5;
         GroundRemaining = 10000;
         actualGroundCost = -1; //as in not yet counted
         terrainLayerMask = LayerMask.NameToLayer("Terrain");
         terrainLayerMask = ~terrainLayerMask;
-        modeText.text = "Mode: " + Mode;
+        if(mode) {
+            modeText.text = "Mode: " + Mode;
+        }
         followHand = GameObject.FindObjectOfType<FollowHand>();
     }
+
 
     //_!_TODO delete this method
        //private void tiltGround(int boolean) {
@@ -317,18 +324,7 @@ public class ChangingHeights: MonoBehaviour {
         if(Input.GetKeyDown("3")) {
             Mode = Modes.Playing;
         }
-        if(Input.GetKey("3")) {
-            terrainSelectionSizeSlider.value++;
-        }
-        if(Input.GetKey("4")) {
-            terrainSelectionSizeSlider.value--;
-        }
-        if(Input.GetKey("5")) {
-            terrainIncrementSlider.value++;
-        }
-        if(Input.GetKey("6")) {
-            terrainIncrementSlider.value--;
-        }
+
         if(Input.GetKeyDown("space")) {
  
         }
