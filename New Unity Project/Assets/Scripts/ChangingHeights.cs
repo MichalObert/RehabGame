@@ -137,25 +137,7 @@ public class ChangingHeights: MonoBehaviour {
     }
 
 
-    //_!_TODO delete this method
-       //private void tiltGround(int boolean) {
-       // // get the heights of the terrain at given position
-       // float[,] heights = terrain.terrainData.GetHeights(0, 0, terrain.terrainData.heightmapWidth, terrain.terrainData.heightmapHeight);
-       // for(int i = terrain.terrainData.heightmapWidth -1; i >= 0; i--) {
-       //     for(int j = terrain.terrainData.heightmapHeight - 1; j >=0 ; j--) {
-       //         float newHeightChange = (int)(j / 2) *0.001f;
-       //         if(boolean == 0) {
-       //             heights[i,j] = newHeightChange;
-       //         } else {
-       //             heights[i, j] = 0;
-       //         }
-       //     }
-       // }
-    //    terrain.terrainData.SetHeights(0, 0, heights);
-    //    //Debug.Log(heights.Length);
-    //    //     terrainColorChanger.recolorSquare(0, 0, terrain.terrainData.heightmapWidth, terrain.terrainData.heightmapHeight);
-    //    Debug.Log("did it");
-    //}
+    
     void OnDestroy() {
         //frameListener.eventDelegate -= new FrameListener.LeapEventDelegate(parseFrame);
        // controller.RemoveListener(frameListener);
@@ -166,10 +148,6 @@ public class ChangingHeights: MonoBehaviour {
     }
     void OnMouseUp() {
         mouseIsDown = false;
-    }
-    public void LeapEventNotification() {
-        Debug.Log("Event notif");
-        // this.parseFrame();
     }
     private void parseFrame() {
         #region keyTap
@@ -220,7 +198,6 @@ public class ChangingHeights: MonoBehaviour {
                     */
                 if(accessoryToRemove == null/*!terrainAccessories.removeTree(normalizedPositionOfTap)*/) {
                     if(TreesRemaining > 0) {
-                        //_!_TODO maybe some check if floor is smooth enough
                         terrainAccessories.AddTree(/*normalizedPositionOfTap, */tapHit.point);
                         TreesRemaining--;
                     }

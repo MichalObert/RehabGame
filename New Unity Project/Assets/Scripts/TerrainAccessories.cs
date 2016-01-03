@@ -17,13 +17,21 @@ public class TerrainAccessories : MonoBehaviour {
 
 
     public void AddTree(/*Vector3 position, */Vector3 worldPosition){
+        GameObject tree;
+        if(Application.loadedLevel != 5) {
+            tree = (GameObject)Instantiate(Resources.Load("Prefabs/StoneWall"));
+            tree.transform.position = worldPosition;
+            tree.transform.position += new Vector3(0, tree.GetComponent<BoxCollider>().bounds.size.y / 2, 0);
+            tree.transform.LookAt(ChangingHeights.Instance.ball);
+            tree.transform.eulerAngles = new Vector3(0, tree.transform.eulerAngles.y, 0);
+        } else {
+            tree = (GameObject)Instantiate(Resources.Load("Prefabs/Tree" + UnityEngine.Random.Range(0, 3)));
+            tree.transform.position = worldPosition;
+            tree.transform.Rotate(Vector3.up, UnityEngine.Random.Range(0, 360));    
+        }
+        tree.gameObject.tag = "Accessory";
+        tree.transform.parent = ChangingHeights.Instance.terrain.transform;
 
-        GameObject wall = (GameObject)Instantiate(Resources.Load("Prefabs/StoneWall"));
-        wall.transform.position = worldPosition;
-        wall.transform.LookAt(ChangingHeights.Instance.ball);
-        wall.transform.parent = ChangingHeights.Instance.terrain.transform;
-        wall.gameObject.tag = "Accessory";
-        wall.transform.position += new Vector3(0,wall.GetComponent<BoxCollider>().bounds.size.y / 2,0);
         /*TerrainData terrainData = terrain.terrainData;
         
         TreeInstances = new List<TreeInstance>(terrain.terrainData.treeInstances);
