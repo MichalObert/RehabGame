@@ -152,9 +152,13 @@ public class ChangingHeights: MonoBehaviour {
     private void parseFrame() {
         #region keyTap
         //gets keyTap position
-        //also plants trees. _!_TODO divide
-        if(currentFrame != null && (mode == Modes.Playing || mode == Modes.Editor) && ((currentFrame.Gestures() != null && !currentFrame.Gestures().IsEmpty)
-            || Input.GetMouseButtonDown(1))) {
+
+        bool accessoryHit = false;
+        //have to create new Raycast, because Visual Studio does not recognize Physics.Raycast as tapHit input and reports error
+        RaycastHit tapHit = new RaycastHit();
+
+        if(currentFrame != null && (mode == Modes.Playing || mode == Modes.Editor) && ((currentFrame.Gestures() != null 
+            && !currentFrame.Gestures().IsEmpty))) {
 
             GameObject accessoryToRemove = null;
             foreach(Gesture g in currentFrame.Gestures()) {
@@ -164,8 +168,7 @@ public class ChangingHeights: MonoBehaviour {
                     tapActive = true;
                 }
             }
-            if(tapActive || Input.GetMouseButtonDown(1)) {
-                RaycastHit tapHit;
+            if(tapActive) {
                 Ray tapRay;
                 if(mode == Modes.Playing) {
                     //Index finger
@@ -178,37 +181,27 @@ public class ChangingHeights: MonoBehaviour {
                         tapRay = new Ray(positionOfTap, positionOfTap - camera.transform.position);
                     }
                 }
-                Vector3 tapHitCoord = Vector3.zero;
+                
                 if(Physics.Raycast(tapRay, out tapHit, 1000) && tapHit.collider.gameObject.tag == "Accessory") {
-                    // tapHitCoord = tapHit.point;
-                    accessoryToRemove = tapHit.collider.gameObject;
+                    accessoryHit = true;
                 }
-
-               /* 
-                // get the normalized position of hit relative to the terrain        
-                Vector3 coord2;
-                coord2.x = tapHitCoord.x / terrain.terrainData.size.x;
-                coord2.y = tapHitCoord.z / terrain.terrainData.size.z;
-                // get the position of the terrain heightmap where hit is
-                positionOfTap = new Vector3((int)(coord2.x * hmWidth), (int)(coord2.y * hmHeight), 0);
-                positionOfTap = new Vector3(positionOfTap.x, positionOfTap.y,
-                    terrain.terrainData.GetHeight((int)positionOfTap.x, (int)positionOfTap.y));
-                Vector3 normalizedPositionOfTap = new Vector3(positionOfTap.x / terrain.terrainData.heightmapWidth,
-                    positionOfTap.z / 1000, positionOfTap.y / terrain.terrainData.heightmapHeight);
-                    */
-                if(accessoryToRemove == null/*!terrainAccessories.removeTree(normalizedPositionOfTap)*/) {
-                    if(TreesRemaining > 0) {
-                        terrainAccessories.AddTree(/*normalizedPositionOfTap, */tapHit.point);
-                        TreesRemaining--;
-                    }
-                } else {
-                    terrainAccessories.removeTree(accessoryToRemove);
-                    TreesRemaining++;
-                }
-                tapActive = false;
             }
         }
+
+
         #endregion
+        //removes or adds tree
+        if(tapActive) {
+            if(accessoryHit) {
+                terrainAccessories.removeTree(tapHit.collider.gameObject);
+                accessoryHit = false;
+                TreesRemaining++;
+            } else {
+                terrainAccessories.AddTree(tapHit.point);
+                TreesRemaining--;
+            }
+            tapActive = false;
+        }
         //checks for pinch
         Finger thumb;
         RaycastHit hit;
@@ -223,12 +216,11 @@ public class ChangingHeights: MonoBehaviour {
         Vector3 tempCoord = new Vector3(0, 0, 0);
         if(Physics.Raycast(ray, out hit, 1000, terrainLayerMask)) {
             tempCoord = hit.point;
-            // Debug.DrawRay(positionOfThumb, positionOfThumb - camera.transform.position, Color.red, 1000);
         }
 
         //if correct gesture is detected
         if(checkForPinch(currentFrame, out thumb, 25)){
-            //pinch detected but hund not in scene, so something is wrong
+            //pinch detected but hand not in scene, so something is wrong
             if(rightGraphicHand == null || rightGraphicHand.fingers.Length == 0) {
                 Debug.Log("graphicHand not found");
                 pinchActive = false;
