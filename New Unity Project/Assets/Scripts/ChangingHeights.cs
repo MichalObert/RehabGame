@@ -65,7 +65,7 @@ public class ChangingHeights: MonoBehaviour {
             }
         }
     }
-
+    private bool changedToLevel5 = false;
     private int treesRemaining;
     public int TreesRemaining {
         get {
@@ -99,8 +99,10 @@ public class ChangingHeights: MonoBehaviour {
         SetUp();
     }
     public void SetUp() {
+        GameObject canvas = GameObject.Find("Canvas");
+
         rightHandController = GameObject.Find("Right Hand").GetComponent<HandController>();
-        GameObject mode = GameObject.Find("Mode");
+        GameObject mode = canvas.transform.FindChild("Mode").gameObject;
         GameObject raising = GameObject.Find("Raising");
         if(mode) {
             modeText = mode.GetComponent<Text>();
@@ -109,6 +111,7 @@ public class ChangingHeights: MonoBehaviour {
         if(raising) {
             groundLeft = raising.GetComponent<Text>();
         }
+        
         Instance = this;
         camera = Camera.FindObjectOfType<Camera>();
         Controller = new Controller();
@@ -139,8 +142,6 @@ public class ChangingHeights: MonoBehaviour {
 
     
     void OnDestroy() {
-        //frameListener.eventDelegate -= new FrameListener.LeapEventDelegate(parseFrame);
-       // controller.RemoveListener(frameListener);
     }
     
     void OnMouseDown() {
@@ -160,7 +161,6 @@ public class ChangingHeights: MonoBehaviour {
         if(currentFrame != null && (mode == Modes.Playing || mode == Modes.Editor) && ((currentFrame.Gestures() != null 
             && !currentFrame.Gestures().IsEmpty))) {
 
-            GameObject accessoryToRemove = null;
             foreach(Gesture g in currentFrame.Gestures()) {
                 if(g.Type == Gesture.GestureType.TYPE_KEY_TAP && getRightHand() != null) {
                     positionOfTap = rightHandController.
@@ -174,12 +174,11 @@ public class ChangingHeights: MonoBehaviour {
                     //Index finger
                     Vector3 indexFingerTipPosition = getRightGraphicHand().fingers[1].GetTipPosition();
                     tapRay = new Ray(indexFingerTipPosition, Vector3.down);
+                    Debug.DrawLine(getRightGraphicHand().fingers[1].GetTipPosition(), Vector3.down, Color.red, 1000);
+                    if(Physics.Raycast(tapRay, out tapHit, 1000))
+                        Debug.Log(tapHit.collider.gameObject);
                 } else {
-                    if(Input.GetMouseButtonDown(1)) {
-                        tapRay = camera.ScreenPointToRay(Input.mousePosition);
-                    } else {
                         tapRay = new Ray(positionOfTap, positionOfTap - camera.transform.position);
-                    }
                 }
                 
                 if(Physics.Raycast(tapRay, out tapHit, 1000) && tapHit.collider.gameObject.tag == "Accessory") {
@@ -192,13 +191,16 @@ public class ChangingHeights: MonoBehaviour {
         #endregion
         //removes or adds tree
         if(tapActive) {
-            if(accessoryHit) {
+            if(!accessoryHit) {
+                Debug.Log(tapHit.collider.gameObject.name + tapHit.collider.gameObject.tag);
+                if(Application.loadedLevel == 5 || TreesRemaining > 0) {
+                    terrainAccessories.AddTree(tapHit.point);
+                    TreesRemaining--;
+                }
+            } else {
                 terrainAccessories.removeTree(tapHit.collider.gameObject);
                 accessoryHit = false;
                 TreesRemaining++;
-            } else {
-                terrainAccessories.AddTree(tapHit.point);
-                TreesRemaining--;
             }
             tapActive = false;
         }
@@ -255,20 +257,12 @@ public class ChangingHeights: MonoBehaviour {
         // we set an offset so that all the raising terrain is under this point, rather than at edge
         if(mode == Modes.Editor && posXInTerrain + size < hmWidth && posYInTerrain + size < hmHeight && posXInTerrain > 0 && posYInTerrain > 0 &&
              (pinchActive || mouseIsDown)) {
-        
                  if(!pinchActive && mouseIsDown) {
                      heightChange = 0.001f;
                  }
             RaiseGround();
         }
-
-        //change everytime, but only on the size*size square
-        /* if(counter > 50) {
-             terrainColorChanger.recolorSquare(0, 0, terrain.terrainData.alphamapWidth, terrain.terrainData.alphamapHeight);
-             counter = 0;
-         }
-         counter++;*/
-        }
+    }
     void Update() {
 
         if(Input.GetKeyDown(KeyCode.LeftShift)) {
@@ -286,17 +280,10 @@ public class ChangingHeights: MonoBehaviour {
         if(Input.GetKeyDown("1")) {
             Mode = Modes.Editor;
         }
-        //if(Input.GetKeyDown("2")) {
-        //    Mode = Modes.Interactive;
-        //    // !_TODO changeColor of hand
-        //}
-        if(Input.GetKeyDown("3")) {
+        if(Input.GetKeyDown("2")) {
             Mode = Modes.Playing;
         }
 
-        if(Input.GetKeyDown("space")) {
- 
-        }
 
         
         //debuging purposes
@@ -382,7 +369,6 @@ public class ChangingHeights: MonoBehaviour {
             rightHand = null;
             foreach (Hand hand in currentFrame.Hands){
                 if(hand.IsRight){
-         //           skeletalHand = GameObject.FindObjectOfType<SkeletalHand>();             CAN SET POSITION
                     rightHand = hand;
                     rightHandID = rightHand.Id;
                     break;
@@ -493,7 +479,7 @@ public class ChangingHeights: MonoBehaviour {
         if(actualGroundCost == -1) {
             GroundAmmountRequired();
         }
-        if(actualGroundCost > groundRemaining) {
+        if(actualGroundCost > groundRemaining && Application.loadedLevel != 5) {
             Debug.Log("Not enough ground left. Needs: " + actualGroundCost + ", has: " + groundRemaining);
             return;
         }
@@ -510,25 +496,18 @@ public class ChangingHeights: MonoBehaviour {
             for(int j = 0; j < size; j++) {
                 //circle equation
                 if((i - middleOfCircle) * (i - middleOfCircle) + (j - middleOfCircle) * (j - middleOfCircle) < middleOfCircle * middleOfCircle) {
-                    //      if(exp ^ -((1 / 2) * (i - middleOfCircle) * (i - middleOfCircle) + 1 / 2 * (j - middleOfCircle) * (j - middleOfCircle)) < middleOfCircle * middleOfCircle) { 
-                    //  heights[i, j] += heightChange;
                     xCor = i - middleOfCircle;
                     yCor = j - middleOfCircle;
                     if(xCor < 0)
                         xCor = -xCor;
                     if(yCor < 0)
                         yCor = -yCor;
-                    //not working, making cross
-                    //heights[i, j] += heightChange * (((middleOfCircle - xCor) / middleOfCircle) + ((middleOfCircle - yCor) / middleOfCircle)) / 2;
-                    //try this. If not, try to not add xcor and ycor together...
                     float newHeightChange = heightChange * ((middleOfCircle - xCor) + (middleOfCircle - yCor)) / 2;
                     if(((middleOfCircle - xCor) + (middleOfCircle - yCor)) / 2 >= 15) {
                         //slow down raising closer to the middleOfCircle of circle;
                         newHeightChange *= 0.6f;
                     }
                     heights[i, j] += newHeightChange;
-                    //  heights[i, j] += ((middleOfCircle - i)) > 0 ? (middleOfCircle - i) / 20 : 0;
-                    //heights[i, j] += ((middleOfCircle - j) / 20) > 0? (middleOfCircle-j)/20 : 0;
                 }
             }
         }
