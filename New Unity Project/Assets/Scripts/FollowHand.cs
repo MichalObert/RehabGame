@@ -99,9 +99,7 @@ public class FollowHand : MonoBehaviour {
 
         shadowProjector.orthographicSize = ChangingHeights.Instance.size;
     }
-    void FixedUpdate() {
-        
-    }
+
     void LateUpdate() {
         if(ChangingHeights.Instance.JustChangedMode == true && 
             (ChangingHeights.Instance.oldMode == ChangingHeights.Modes.Playing 

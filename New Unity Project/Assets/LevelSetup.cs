@@ -8,9 +8,4 @@ public class LevelSetup : MonoBehaviour {
         GameObject.FindObjectOfType<FollowHand>().SetUp();
         GameObject.FindObjectOfType<BallScript>().SetUp();
     }
-
-    // Update is called once per frame
-    void Update () {
-	
-	}
 }
