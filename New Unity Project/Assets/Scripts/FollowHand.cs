@@ -6,6 +6,7 @@ public class FollowHand : MonoBehaviour {
     public float BallsSpeed {
         get; set;
     }
+    public GameObject Helper;
     private DirrectionLightUp leftArrow;
     private DirrectionLightUp rightArrow;
     private DirrectionLightUp upArrow;
@@ -82,7 +83,7 @@ public class FollowHand : MonoBehaviour {
         leftHandControllerStartingRotation = leftHandControllerTransform.rotation;
         rightHandControllerStartingPosition = rightHandControllerTransform.position;
         rightHandControllerStartingRotation = rightHandControllerTransform.rotation;
-        BallsSpeed = 15f;
+        BallsSpeed = 150f;
         offset = 0;
 
     }
@@ -94,6 +95,14 @@ public class FollowHand : MonoBehaviour {
         shadowProjector.orthographicSize = ChangingHeights.Instance.size;
     }
 
+    void Update() {
+        if(ChangingHeights.Instance.Mode == ChangingHeights.Modes.Playing && !ChangingHeights.Instance.JustChangedMode) {
+            leftHandControllerTransform.position = ball.position + new Vector3(-1.5f, 6, -2) - transform.forward;
+
+            rightHandControllerTransform.position = ball.position;
+            rightHandControllerTransform.rotation = rightHandControllerStartingRotation;
+        }
+    }
     void LateUpdate() {
         if(ChangingHeights.Instance.JustChangedMode == true && 
             (ChangingHeights.Instance.oldMode == ChangingHeights.Modes.Playing 
@@ -138,12 +147,7 @@ public class FollowHand : MonoBehaviour {
 
             ChangingHeights.Instance.JustChangedMode = false;
         }
-        if(ChangingHeights.Instance.Mode == ChangingHeights.Modes.Playing && !ChangingHeights.Instance.JustChangedMode) {
-            leftHandControllerTransform.position = ball.position + new Vector3(-1.5f, 6, -2) - transform.forward;
-
-            rightHandControllerTransform.position = ball.position;
-            rightHandControllerTransform.rotation = rightHandControllerStartingRotation;
-        }
+        
         
         //camera follows ball
         if(ChangingHeights.Instance.Mode == ChangingHeights.Modes.Playing) {
@@ -271,12 +275,12 @@ public class FollowHand : MonoBehaviour {
                 cameraRotationVector = Vector3.zero;
             } else {
                 //Vector3 movement = Vector3.Cross(transform.forward, new Vector3(cameraMovementVector.x, 0.0f, cameraMovementVector.z));// + new Vector3(cameraMovementVector.x, 0.0f, cameraMovementVector.z);
-                Vector3 movement = new Vector3(transform.right.x * cameraMovementVector.x, 0, transform.forward.z * cameraMovementVector.z);
-                //turning to oposite direction
-                if((cameraMovementVector.x > 0 && ballsRigidbody.velocity.x < 0)
-                    || (cameraMovementVector.x < 0 && ballsRigidbody.velocity.x > 0)) {
-                    movement.x *= 2;
-                }
+                //Vector3 movement = new Vector3(transform.right.x * cameraMovementVector.x, 0, transform.forward.z * cameraMovementVector.z);
+                ////turning to oposite direction
+                //if((cameraMovementVector.x > 0 && ballsRigidbody.velocity.x < 0)
+                //    || (cameraMovementVector.x < 0 && ballsRigidbody.velocity.x > 0)) {
+                //    movement.x *= 2;
+                //}
                 if(cameraMovementVector.x < 0) {
                     leftArrow.ChangeState(true);
                 } else {
@@ -298,30 +302,24 @@ public class FollowHand : MonoBehaviour {
                     downArrow.ChangeState(false);
                 }
                 if(Time.timeScale > 0.1f) {
-                    movement.y = 0;
-                    //    ballsRigidbody.AddForce(movement * BallsSpeed);
                     if(cameraMovementVector.z > 0) {
-                        var HelperForward = Helper.transform.TransformDirection(Vector3.forward);
-
-                        rigidbody.AddForce(HelperForward * MoveSpeed);
+                        Vector3 HelperForward = Helper.transform.TransformDirection(Vector3.forward);
+                       ballsRigidbody.AddForce(HelperForward * BallsSpeed * 1.4f * Time.deltaTime);
                     }
 
-                    if(Input.GetKey("s")) {
-                        var HelperBack = Helper.transform.TransformDirection(Vector3.back);
-
-                        rigidbody.AddForce(HelperBack * MoveSpeed);
+                    if(cameraMovementVector.z < 0) {
+                        Vector3 HelperBack = Helper.transform.TransformDirection(Vector3.back);
+                        ballsRigidbody.AddForce(HelperBack * BallsSpeed * Time.deltaTime);
                     }
 
-                    if(Input.GetKey("a")) {
-                        var HelperLeft = Helper.transform.TransformDirection(Vector3.left);
-
-                        rigidbody.AddForce(HelperLeft * MoveSpeed);
+                    if(cameraMovementVector.x < 0) {
+                        Vector3 HelperLeft = Helper.transform.TransformDirection(Vector3.left);
+                        ballsRigidbody.AddForce(HelperLeft * BallsSpeed * Time.deltaTime);
                     }
 
-                    if(Input.GetKey("d")) {
-                        var HelperRight = Helper.transform.TransformDirection(Vector3.right);
-
-                        rigidbody.AddForce(HelperRight * MoveSpeed);
+                    if(cameraMovementVector.x > 0) {
+                        Vector3 HelperRight = Helper.transform.TransformDirection(Vector3.right);
+                        ballsRigidbody.AddForce(HelperRight * BallsSpeed * Time.deltaTime);
                     }
                 }
             }

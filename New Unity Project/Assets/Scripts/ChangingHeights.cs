@@ -276,11 +276,12 @@ public class ChangingHeights: MonoBehaviour {
             goUp *= -1;
             GroundAmmountRequired();
         }
-        if(Input.GetKeyDown("1")) {
+        if(Input.GetKeyDown("1") && Application.loadedLevel == 5) {
             Mode = Modes.Editor;
         }
-        if(Input.GetKeyDown("2")) {
+        if(Input.GetKeyDown("2") && Application.loadedLevel == 5) {
             Mode = Modes.Playing;
+            //_!_TODO check if player gets to start
         }
 
 
