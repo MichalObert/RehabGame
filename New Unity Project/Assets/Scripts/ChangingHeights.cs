@@ -196,7 +196,6 @@ public class ChangingHeights: MonoBehaviour {
                 accessoryHit = false;
                 TreesRemaining++;
             } else {
-                Debug.Log(tapHit.collider.gameObject.name + tapHit.collider.gameObject.tag);
                 if(Application.loadedLevel == 5 || TreesRemaining > 0) {
                     terrainAccessories.AddTree(tapHit.point);
                     TreesRemaining--;
