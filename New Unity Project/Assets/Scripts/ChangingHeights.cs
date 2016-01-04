@@ -174,7 +174,7 @@ public class ChangingHeights: MonoBehaviour {
                     //Index finger
                     Vector3 indexFingerTipPosition = getRightGraphicHand().fingers[1].GetTipPosition();
                     tapRay = new Ray(indexFingerTipPosition, Vector3.down);
-                    Debug.DrawLine(getRightGraphicHand().fingers[1].GetTipPosition(), Vector3.down, Color.red, 1000);
+                    Debug.DrawLine(new Vector3(711,10,117)/*getRightGraphicHand().fingers[1].GetTipPosition()*/, Vector3.down, Color.red, 1000);
                     if(Physics.Raycast(tapRay, out tapHit, 1000))
                         Debug.Log(tapHit.collider.gameObject);
                 } else {
@@ -191,18 +191,18 @@ public class ChangingHeights: MonoBehaviour {
         #endregion
         //removes or adds tree
         if(tapActive) {
-            if(!accessoryHit) {
+            if(accessoryHit) {
+                terrainAccessories.removeTree(tapHit.collider.gameObject);
+                accessoryHit = false;
+                TreesRemaining++;
+            } else {
                 Debug.Log(tapHit.collider.gameObject.name + tapHit.collider.gameObject.tag);
                 if(Application.loadedLevel == 5 || TreesRemaining > 0) {
                     terrainAccessories.AddTree(tapHit.point);
                     TreesRemaining--;
                 }
-            } else {
-                terrainAccessories.removeTree(tapHit.collider.gameObject);
-                accessoryHit = false;
-                TreesRemaining++;
+                tapActive = false;
             }
-            tapActive = false;
         }
         //checks for pinch
         Finger thumb;
