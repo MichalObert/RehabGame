@@ -97,7 +97,7 @@ public class FollowHand : MonoBehaviour {
 
     void Update() {
         if(ChangingHeights.Instance.Mode == ChangingHeights.Modes.Playing && !ChangingHeights.Instance.JustChangedMode) {
-            leftHandControllerTransform.position = ball.position + new Vector3(-1.5f, 6, -2) - transform.forward;
+            leftHandControllerTransform.position = ball.position + Helper.transform.TransformDirection(Vector3.back) *4 + Vector3.up * 6;
 
             rightHandControllerTransform.position = ball.position;
             rightHandControllerTransform.rotation = rightHandControllerStartingRotation;
@@ -168,7 +168,7 @@ public class FollowHand : MonoBehaviour {
             transform.parent.position = ball.position;
             transform.localPosition = Vector3.zero;
             transform.localPosition -= Vector3.forward * distance;
-            transform.parent.Rotate(Vector3.up, cameraMovementVector.x/3);
+            transform.parent.Rotate(Vector3.up, cameraMovementVector.x);
             leftHandControllerTransform.rotation = transform.rotation;
             leftHandControllerTransform.Rotate(Vector3.up, -30, Space.World);
             if((offset > -5 && cameraMovementVector.z < 0)||(offset < 5 && cameraMovementVector.z > 0)) {

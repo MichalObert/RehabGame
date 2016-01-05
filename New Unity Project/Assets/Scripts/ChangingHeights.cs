@@ -158,14 +158,19 @@ public class ChangingHeights: MonoBehaviour {
         //have to create new Raycast, because Visual Studio does not recognize Physics.Raycast as tapHit input and reports error
         RaycastHit tapHit = new RaycastHit();
 
-        if(currentFrame != null && (mode == Modes.Playing || mode == Modes.Editor) && ((currentFrame.Gestures() != null 
-            && !currentFrame.Gestures().IsEmpty))) {
+        if(currentFrame != null && ((currentFrame.Gestures() != null && !currentFrame.Gestures().IsEmpty))) {
 
             foreach(Gesture g in currentFrame.Gestures()) {
                 if(g.Type == Gesture.GestureType.TYPE_KEY_TAP && getRightHand() != null) {
-                    positionOfTap = rightHandController.
-                        transform.TransformPoint(getIndexFinger(getRightHand()).TipPosition.ToUnityScaled());
-                    tapActive = true;
+                    foreach(Pointable p in g.Pointables) {
+                        Finger f = new Finger(p);
+                        if(f.Type() != Finger.FingerType.TYPE_INDEX) {
+                            continue;
+                        }
+                        positionOfTap = rightHandController.
+                            transform.TransformPoint(getIndexFinger(getRightHand()).TipPosition.ToUnityScaled());
+                        tapActive = true;
+                    }
                 }
             }
             if(tapActive) {
@@ -264,18 +269,6 @@ public class ChangingHeights: MonoBehaviour {
     }
     void Update() {
 
-        if(Input.GetKeyDown(KeyCode.LeftShift)) {
-            speed = 10;
-            GroundAmmountRequired();
-        }
-        if(Input.GetKeyUp(KeyCode.LeftShift)) {
-            speed = 1;
-            GroundAmmountRequired();
-        }
-        if(Input.GetKeyDown(KeyCode.LeftControl)) {
-            goUp *= -1;
-            GroundAmmountRequired();
-        }
         if(Input.GetKeyDown("1") && Application.loadedLevel == 5) {
             Mode = Modes.Editor;
         }
@@ -286,10 +279,8 @@ public class ChangingHeights: MonoBehaviour {
 
 
         
-        //debuging purposes
         if(!Controller.IsConnected) {
-            heightChange = 0.001f;
-            parseFrame();
+            return;
         }
         currentFrame = Controller.Frame();
         //if frame already processed

@@ -8,7 +8,9 @@ public class PersistableEnabler : MonoBehaviour {
 	void Start () {
         persistable = GameObject.Find("Persistable");
         foreach(Transform child in persistable.transform) {
-            child.gameObject.SetActive(false);
+            if(child.gameObject.name != "Ball") {
+                child.gameObject.SetActive(false);
+            }
         }
 	}
 
